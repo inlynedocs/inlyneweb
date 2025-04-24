@@ -1,4 +1,4 @@
-// app/components/RichTextEditor.tsx
+// app/components/Textbox.tsx
 'use client';
 
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -8,14 +8,19 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const WS_URL  = `${API_BASE}/ws`;
 
-export default function RichTextEditor() {
-  const searchParams = useSearchParams();
-  const [docKey, setDocKey] = useState<string | null>(null);
+interface TextboxProps {
+  /** dynamic route parameter for document key */
+  initialDocKey?: string;
+}
+
+export default function Textbox({ initialDocKey }: TextboxProps) {
+  const router = useRouter();
+  const [docKey, setDocKey] = useState<string | null>(initialDocKey ?? null);
   const stompRef = useRef<Client | null>(null);
 
   const editor = useEditor({
@@ -27,14 +32,12 @@ export default function RichTextEditor() {
     content: '',
   });
 
-  // On mount or URL change: fetch existing document
+  // Fetch existing document if initialDocKey is provided
   useEffect(() => {
-    const key = searchParams.get('docKey');
-    if (key && editor) {
-      setDocKey(key);
-      fetchDoc(key);
+    if (initialDocKey && editor) {
+      fetchDoc(initialDocKey);
     }
-  }, [searchParams, editor]);
+  }, [initialDocKey, editor]);
 
   async function fetchDoc(key: string) {
     try {
@@ -48,7 +51,7 @@ export default function RichTextEditor() {
     }
   }
 
-  // Create a new document, but do not change URL
+  // Create a new document and navigate to its route
   async function createNewDoc() {
     try {
       const res = await fetch(`${API_BASE}/docs`, { method: 'POST' });
@@ -59,35 +62,33 @@ export default function RichTextEditor() {
         setDocKey(key);
         editor?.commands.clearContent();
         connectWebSocket(key);
+        router.push(`/${key}`);
       }
     } catch (err: any) {
       console.error('Error creating document:', err);
     }
   }
 
-  // Connect STOMP over SockJS
+  // WebSocket via STOMP
   function connectWebSocket(key: string) {
     stompRef.current?.deactivate();
-
     const client = new Client({
       webSocketFactory: () => new SockJS(WS_URL),
       reconnectDelay: 5000,
       heartbeatIncoming: 0,
       heartbeatOutgoing: 20000,
     });
-
     client.onConnect = () => {
       client.subscribe(`/topic/docs/${key}`, msg => {
         const { content } = JSON.parse(msg.body);
         editor?.commands.setContent(content);
       });
     };
-
     client.activate();
     stompRef.current = client;
   }
 
-  // Publish updates on local change
+  // Publish on updates
   useEffect(() => {
     if (!editor) return;
     const handler = () => {
@@ -99,9 +100,7 @@ export default function RichTextEditor() {
       }
     };
     editor.on('update', handler);
-    return () => {
-      editor.off('update', handler);
-    };
+    return () => { editor.off('update', handler); };
   }, [editor, docKey]);
 
   if (!editor) return null;
@@ -112,54 +111,36 @@ export default function RichTextEditor() {
       <div className="mb-4 flex space-x-2">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={
-            `cursor-pointer px-3 py-1 rounded transition
-            ${editor.isActive('bold')
-              ? 'bg-brand-olive/50 ring-2 ring-brand-orange'
-              : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'}
-            `
-          }
-        >
-          <strong>B</strong>
-        </button>
+          className={`cursor-pointer px-3 py-1 rounded transition ${
+            editor.isActive('bold') ? 'bg-brand-olive/50 ring-2 ring-brand-orange' : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'
+          }`}
+        ><strong>B</strong></button>
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={
-            `cursor-pointer px-3 py-1 rounded transition
-            ${editor.isActive('italic')
-              ? 'bg-brand-olive/50 ring-2 ring-brand-orange'
-              : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'}
-            `
-          }
-        >
-          <em>I</em>
-        </button>
+          className={`cursor-pointer px-3 py-1 rounded transition ${
+            editor.isActive('italic') ? 'bg-brand-olive/50 ring-2 ring-brand-orange' : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'
+          }`}
+        ><em>I</em></button>
         <button
           onClick={() => {
             const url = prompt('Enter image URL');
             if (url) editor.chain().focus().setImage({ src: url }).run();
           }}
           className="cursor-pointer px-3 py-1 rounded hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange transition"
-        >
-          Img
-        </button>
+        >Img</button>
       </div>
 
       {/* Editable area */}
       <EditorContent
         editor={editor}
-        className="
-          border-2 border-brand-olive rounded-lg
-          bg-brand-ivory p-4 min-h-[12rem]
-          outline-none focus:ring-2 focus:ring-brand-orange transition
-        "
+        className="border-2 border-brand-olive rounded-lg bg-brand-ivory p-4 min-h-[12rem] outline-none focus:ring-2 focus:ring-brand-orange transition"
       />
 
       {/* Create or display document link */}
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={createNewDoc}
-          className="px-4 py-2 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 transition"
+          className="cursor-pointer px-4 py-2 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 hover:shadow-lg transition"
         >
           {docKey ? 'New Document' : 'Create New Document'}
         </button>

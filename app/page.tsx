@@ -1,14 +1,14 @@
-// /app/page.tsx
-import Header from './components/Header';
-import Textbox from './components/Textbox';
+// app/page.tsx
+import Header from './components/Header'
+import RichTextEditor from './components/Textbox'
 
-export default function Page() {
+export default function HomePage() {
   return (
     <>
       <Header />
       <main className="min-h-[calc(100vh-72px)] bg-brand-ivory">
-        <Textbox />
+        <RichTextEditor />
       </main>
     </>
-  );
+  )
 }
