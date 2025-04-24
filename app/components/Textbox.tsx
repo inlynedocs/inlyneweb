@@ -56,7 +56,7 @@ export default function RichTextEditor() {
     const key = json.url.split('/').pop();
     if (key) {
       setDocKey(key);
-      router.replace(`?docKey=${key}`);
+      router.replace(`${key}`);
       editor?.commands.clearContent();
       connectWebSocket(key);
     }
@@ -161,7 +161,7 @@ export default function RichTextEditor() {
         </button>
         {docKey && (
           <span className="text-sm text-brand-olive">
-            Link: <code>?docKey={docKey}</code>
+            Link: <code>{docKey}</code>
           </span>
         )}
       </div>
