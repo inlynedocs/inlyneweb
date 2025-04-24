@@ -8,13 +8,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const WS_URL  = `${API_BASE}/ws`;
 
 export default function RichTextEditor() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [docKey, setDocKey] = useState<string | null>(null);
   const stompRef = useRef<Client | null>(null);
@@ -49,16 +48,20 @@ export default function RichTextEditor() {
     }
   }
 
-  // Create a new document
+  // Create a new document, but do not change URL
   async function createNewDoc() {
-    const res = await fetch(`${API_BASE}/docs`, { method: 'POST' });
-    const json = await res.json(); // { url: '.../docs/{key}' }
-    const key = json.url.split('/').pop();
-    if (key) {
-      setDocKey(key);
-      router.replace(`${key}`);
-      editor?.commands.clearContent();
-      connectWebSocket(key);
+    try {
+      const res = await fetch(`${API_BASE}/docs`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json(); // { url: '.../docs/{key}' }
+      const key = json.url.split('/').pop();
+      if (key) {
+        setDocKey(key);
+        editor?.commands.clearContent();
+        connectWebSocket(key);
+      }
+    } catch (err: any) {
+      console.error('Error creating document:', err);
     }
   }
 
@@ -105,28 +108,29 @@ export default function RichTextEditor() {
 
   return (
     <div className="max-w-xl mx-auto mt-12 bg-brand-cream shadow-lg rounded-2xl p-6">
-
       {/* Toolbar */}
       <div className="mb-4 flex space-x-2">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`
-            cursor-pointer px-3 py-1 rounded transition
+          className={
+            `cursor-pointer px-3 py-1 rounded transition
             ${editor.isActive('bold')
               ? 'bg-brand-olive/50 ring-2 ring-brand-orange'
               : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'}
-          `}
+            `
+          }
         >
           <strong>B</strong>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`
-            cursor-pointer px-3 py-1 rounded transition
+          className={
+            `cursor-pointer px-3 py-1 rounded transition
             ${editor.isActive('italic')
               ? 'bg-brand-olive/50 ring-2 ring-brand-orange'
               : 'hover:bg-brand-olive/20 focus:ring-2 focus:ring-brand-orange'}
-          `}
+            `
+          }
         >
           <em>I</em>
         </button>
@@ -161,27 +165,10 @@ export default function RichTextEditor() {
         </button>
         {docKey && (
           <span className="text-sm text-brand-olive">
-            Link: <code>{docKey}</code>
+            Link: <code>{`${window.location.origin}/${docKey}`}</code>
           </span>
         )}
       </div>
-
-      {/* Optional manual link copy */}
-      {docKey && (
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={() => {
-              const html = editor.getHTML();
-              const link = `${window.location.origin}/document/${encodeURIComponent(html)}`;
-              navigator.clipboard.writeText(link);
-              alert('🔗 Link copied!');
-            }}
-            className="px-6 py-3 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 transition focus:ring-2 focus:ring-brand-orange"
-          >
-            Generate Link
-          </button>
-        </div>
-      )}
     </div>
   );
 }
