@@ -37,3 +37,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 ## RERUN DEPLOYMENT #2x
+
+
+
+
+### INSTALL DEPENDAN
+[`npm install @tiptap/extension-code-block-lowlight lowlight react-medium-image-zoom @tiptap/extension-color @tiptap/extension-heading @tiptap/extension-horizontal-rule @tiptap/extension-image @tiptap/extension-link @tiptap/extension-placeholder @tiptap/extension-text-style @tiptap/extension-typography @tiptap/pm @tiptap/react @tiptap/starter-kit @tiptap/extension-underline`]
