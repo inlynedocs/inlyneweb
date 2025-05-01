@@ -16,6 +16,7 @@
 "use client";
 import RichTextEditor from "./components/rich-text-editor/RichTextEditor"
 import Header from "./components/Header";
+import GenerateLink from "./components/GenerateLink";
 import { useState } from "react";
 
 export default function Home() {
@@ -31,6 +32,7 @@ export default function Home() {
       <Header />
       <div className="max-w-3xl mx-auto py-8">
         <RichTextEditor content={post} onChange={onChange} />
+        <GenerateLink content={post} />
       </div>
     </>
     
