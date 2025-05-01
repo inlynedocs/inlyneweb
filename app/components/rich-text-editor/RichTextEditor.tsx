@@ -1,47 +1,54 @@
-'use client';
+"use client";
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import TextAlign from '@tiptap/extension-text-align';
-import Highlight from '@tiptap/extension-highlight';
-import Image from '@tiptap/extension-image';
-import Placeholder from '@tiptap/extension-placeholder';
-import MenuBar from './Menubar';
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import React from "react";
+import MenuBar from "./Menubar";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
 
 interface RichTextEditorProps {
   content: string;
-  onUpdate: (html: string) => void;
+  onChange: (content: string) => void;
 }
-
-export default function RichTextEditor({ content, onUpdate }: RichTextEditorProps) {
+export default function RichTextEditor({
+  content,
+  onChange,
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      StarterKit.configure({
+        bulletList: {
+          HTMLAttributes: {
+            class: "list-disc ml-3",
+          },
+        },
+        orderedList: {
+          HTMLAttributes: {
+            class: "list-decimal ml-3",
+          },
+        },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
       Highlight,
-      Image,
-      Placeholder.configure({ placeholder: 'Type your documentation here…' }),
     ],
-    content,
-    autofocus: 'end',
-    onUpdate: ({ editor }) => onUpdate(editor.getHTML()),
+    content: content,
+    editorProps: {
+      attributes: {
+        class: "min-h-[156px] border rounded-md bg-slate-50 py-2 px-3",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
   });
 
-  if (!editor) return <p>Loading editor…</p>;
-
   return (
-    <div className="flex flex-col max-w-3xl mx-auto mt-8 p-6 bg-brand-cream rounded-2xl shadow-lg h-[70vh]">
-      {/* Toolbar */}
+    <div>
       <MenuBar editor={editor} />
-
-      {/* Editor area */}
-      <div className="flex-1 mt-4 overflow-auto rounded-lg focus-within:ring-2 focus-within:ring-brand-orange transition">
-        <EditorContent
-          editor={editor}
-          style={{ caretColor: '#FF4F18' }}
-          className="ProseMirror h-full p-4 bg-brand-ivory focus:outline-none border-none"
-        />
-      </div>
+      <EditorContent editor={editor} />;
     </div>
   );
 }
