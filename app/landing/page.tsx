@@ -1,25 +1,16 @@
+'use client'
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Lightning, Users, Globe } from 'lucide-react';
+import Header from "../components/Header";
+import { Button } from '../components/ui';
+import { Card, CardContent, CardHeader } from '../components/ui';
+import { Zap as Lightning, Users, Globe } from 'lucide-react';
 
 export default function InlyneHomepage() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Navbar */}
-      <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Inlyne</h1>
-        <div className="space-x-6">
-          <a href="#features" className="hover:underline">
-            Features
-          </a>
-          <a href="#about" className="hover:underline">
-            About
-          </a>
-          <Button size="sm">Get Started</Button>
-        </div>
-      </nav>
+      < Header/>
 
       {/* Hero Section */}
       <section className="flex-grow bg-gradient-to-r from-indigo-500 to-blue-500">
