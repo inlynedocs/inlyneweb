@@ -9,7 +9,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center">
           <img
-            src="inlyne_bracket_icon.png"
+            src="inlyne_logo.png"
             alt="Inlyne Logo"
             className="h-10 w-auto"
           />
