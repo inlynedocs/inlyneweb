@@ -7,7 +7,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-brand-olive/90 text-brand-ivory backdrop-blur-sm shadow-md">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center">
+        <Link href="/home" passHref className="flex items-center">
           <img
             src="inlyne_logo.png"
             alt="Inlyne Logo"
