@@ -18,11 +18,13 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-72px)] bg-brand-ivory flex justify-center items-center p-4">
       <div className="w-full max-w-md bg-brand-cream shadow-lg rounded-2xl p-8">
         <div className="flex justify-center mb-6">
+          <Link href="/home" passHref>
           <img
             src="/inlyne_logo.png"
             alt="Inlyne Logo"
             style={{ width: '150px', height: 'auto' }}
           />
+          </Link>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
