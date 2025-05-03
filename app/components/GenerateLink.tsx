@@ -32,7 +32,7 @@ export default function GenerateLink({ content }: GenerateLinkProps) {
           focus:outline-none focus:ring-2 focus:ring-brand-orange
         "
       >
-        🚀 Generate Link
+      Generate Link
       </button>
       {link && (
         <a
