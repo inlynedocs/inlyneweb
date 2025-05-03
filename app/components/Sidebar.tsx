@@ -16,11 +16,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
 
   return (
     <aside
-      className={`flex flex-col bg-white border-r transition-width duration-300 ease-in-out ${
+      className={`flex flex-col bg-white border-r border-gray-100  transition-width duration-300 ease-in-out ${
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
       <div className="flex items-center justify-between p-4">
+        
         <img
           src={
             collapsed ? '/inlyne_bracket_icon.png' : '/inlyne_logo.png'
