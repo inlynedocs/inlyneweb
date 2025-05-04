@@ -12,9 +12,20 @@ const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
 
 export const Button: React.FC<ButtonProps> = ({ size = 'sm', className = '', children, ...props }) => (
   <button
-    className={
-      `${sizeClasses[size]} bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-2xl shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${className}`
-    }
+    className={`
+      ${sizeClasses[size]}
+      bg-[#EC6D26]
+      hover:bg-[#CD5512]
+      text-white
+      font-medium
+      rounded-2xl
+      shadow
+      focus:outline-none
+      focus:ring-2
+      focus:ring-offset-2
+      focus:ring-[#EC6D26]
+      ${className}
+    `}
     {...props}
   >
     {children}

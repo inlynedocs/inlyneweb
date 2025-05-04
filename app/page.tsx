@@ -14,7 +14,7 @@ export default function InlyneHomepage() {
       < Header/>
 
       {/* Hero Section */}
-      <section className="flex-grow bg-gradient-to-r from-indigo-500 to-blue-500">
+      <section className="flex-grow bg-[#F59676]">
         <div className="container mx-auto px-6 py-20 text-center">
           <motion.h2
             className="text-4xl md:text-6xl font-extrabold leading-tight"
