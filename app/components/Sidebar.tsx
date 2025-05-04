@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface SidebarProps {
   documents: string[];
@@ -21,7 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
       }`}
     >
       <div className="flex items-center justify-between p-4">
-        
+        <Link href="/home" passHref>
         <img
           src={
             collapsed ? '/inlyne_bracket_icon.png' : '/inlyne_logo.png'
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
           alt="Inlyne Logo"
           className="h-8 w-auto"
         />
+        </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded hover:bg-gray-200"
