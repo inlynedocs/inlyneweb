@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import { Button } from './components/ui';
 import { Card, CardContent, CardHeader } from './components/ui';
 import { Zap as Lightning, Users, Globe } from 'lucide-react';
+import Link from 'next/link';
 
 export default function InlyneHomepage() {
   return (
@@ -21,7 +22,7 @@ export default function InlyneHomepage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            Seamless Connectivity<br /> Anywhere, Anytime
+            Seamless Documentation<br /> Anywhere, Anytime
           </motion.h2>
           <motion.p
             className="mt-6 text-lg max-w-2xl mx-auto"
@@ -29,16 +30,18 @@ export default function InlyneHomepage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Inlyne empowers your team with real-time collaboration tools that keep you connected without limits.
+            Inlyne empowers your team with organized documentation and resources to boost productivity and collaboration.
           </motion.p>
           <motion.div
             className="mt-10"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.5 }}
-          >
-            <Button size="lg">Start Your Free Trial</Button>
+          > <Link href="/editor" passHref>
+            <Button size="lg">Go to Editor</Button>
+          </Link>
           </motion.div>
+    
         </div>
       </section>
 
@@ -52,27 +55,27 @@ export default function InlyneHomepage() {
               <h4 className="font-medium">Real-time Sync</h4>
             </CardHeader>
             <CardContent>
-              Changes propagate instantly across all devices, ensuring everyone stays on the same page.
+              Changes propagate instantly across all platforms, ensuring everthing is up-to-date.
             </CardContent>
           </Card>
 
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="flex items-center space-x-4">
               <Users className="w-6 h-6 text-green-500" />
-              <h4 className="font-medium">Team Collaboration</h4>
+              <h4 className="font-medium">Boost Productivity</h4>
             </CardHeader>
             <CardContent>
-              Empower your team with shared workspaces, role-based permissions, and built-in chat.
+              Allows your team to access the documentation and resources they need, when they need them.
             </CardContent>
           </Card>
 
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="flex items-center space-x-4">
               <Globe className="w-6 h-6 text-blue-500" />
-              <h4 className="font-medium">Global Access</h4>
+              <h4 className="font-medium">Accessibility</h4>
             </CardHeader>
             <CardContent>
-              Connect from anywhere in the world with enterprise-grade security and uptime.
+              Connect from any device at any time.
             </CardContent>
           </Card>
         </div>
