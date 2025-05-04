@@ -16,7 +16,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-72px)] bg-brand-ivory flex justify-center items-center p-4">
-      <div className="w-full max-w-md bg-brand-cream shadow-lg rounded-2xl p-8">
+      <div className="
+          w-full max-w-md
+          bg-brand-cream
+          rounded-2xl p-8
+          shadow-[0_-4px_6px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]
+        "
+      >
         <div className="flex justify-center mb-6">
           <Link href="/home" passHref>
           <img
