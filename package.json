@@ -32,6 +32,7 @@
     "framer-motion": "^12.9.4",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.503.0",
+    "motion": "^12.9.4",
     "next": "15.3.0",
     "node": "^22.15.0",
     "react": "^19.1.0",

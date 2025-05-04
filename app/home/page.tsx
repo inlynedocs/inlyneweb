@@ -1,55 +1,97 @@
+// app/home/page.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 
-const documents = [
-  'Test1',
-  'Test2',
-  'Test3',
-  'Test4',
-  'Test5',
-  'Test6',
-];
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const DEFAULT_DOCS = ['Test1','Test2','Test3','Test4','Test5','Test6'];
 
 export default function InlyneHomepage() {
+  const router = useRouter();
+  const [docs, setDocs] = useState<string[]>([]);
+
+  // Load from localStorage (or defaults) on first render
+  useEffect(() => {
+    const stored = localStorage.getItem('inlyne-docs');
+    if (stored) {
+      try {
+        setDocs(JSON.parse(stored));
+      } catch {
+        setDocs(DEFAULT_DOCS);
+      }
+    } else {
+      setDocs(DEFAULT_DOCS);
+    }
+  }, []);
+
+  // Persist to localStorage whenever `docs` changes
+  useEffect(() => {
+    localStorage.setItem('inlyne-docs', JSON.stringify(docs));
+  }, [docs]);
+
+  // Create a new doc via your API, update state+storage, then navigate
+  const handleCreate = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/docs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'create' }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { url } = await res.json();       // e.g. { url: '…/docs/abcd1234' }
+      const key = url.split('/').pop()!;       // 'abcd1234'
+
+      // 1) add to our in-memory list
+      setDocs((prev) => [key, ...prev.filter((k) => k !== key)]);
+      // 2) navigate to the editor route for that key
+      router.push(`/editor/${key}`);
+    } catch (err: any) {
+      console.error('Create failed:', err);
+      alert(`Error creating document: ${err.message}`);
+    }
+  };
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
-      <Sidebar documents={documents} />
+      {/* Sidebar shows the persisted list */}
+      <Sidebar documents={docs} />
 
-      {/* Main content area */}
-      <main className="flex-1 overflow-auto">
-      <header className="flex justify-between items-center px-6 py-4 bg-white text-brand-ivory backdrop-blur-sm shadow-md ">
-          <div /> {/* blank left side */}
-          <a href="/profile" className="text-gray-700 hover:underline">
-            My Profile
-          </a>
+      <main className="flex-1 overflow-auto bg-brand-ivory">
+        {/* Profile header */}
+        <header className="flex justify-end px-6 py-4 bg-white shadow-md">
+          <a href="/profile" className="hover:underline">My Profile</a>
         </header>
-        <h1 className="text-2xl font-bold mb-6 p-6 ">Document Overview</h1>
+
+        {/* Title + New Document button */}
+        <div className="flex justify-between items-center px-6 py-4">
+          <h1 className="text-2xl font-bold">Document Overview</h1>
+          <button
+            onClick={handleCreate}
+            className="cursor-pointer px-4 py-2 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 transition"
+          >
+            + New Document
+          </button>
+        </div>
+
+        {/* Grid of docs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-6">
-          {documents.map((doc) => (
-            <div
-              key={doc}
-              className="bg-white rounded-lg shadow-sm flex flex-col overflow-hidden"
-            >
+          {docs.map((doc) => (
+            <div key={doc} className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="h-40 flex items-center justify-center">
-                {/* Preview placeholder or image thumbnail */}
                 <img
                   src={`/previews/${doc}.png`}
                   alt={`${doc} preview`}
                   className="max-h-full"
                   onError={(e) => {
-                    // Fallback icon if no preview image
                     (e.currentTarget as HTMLImageElement).src =
                       '/icons/document_placeholder.svg';
                   }}
                 />
               </div>
-              <div className="p-4 flex-1 flex items-center justify-center">
-                <h3 className="text-lg font-medium text-center truncate">
-                  {doc}
-                </h3>
+              <div className="p-4 text-center">
+                <h3 className="text-lg truncate">{doc}</h3>
               </div>
             </div>
           ))}
