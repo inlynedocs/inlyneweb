@@ -37,8 +37,8 @@ export default function InlyneHomepage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.5 }}
-          > <Link href="/editor" passHref>
-            <Button size="lg">Go to Editor</Button>
+          > <Link href="/home" passHref>
+            <Button size="lg">Go to Home</Button>
           </Link>
           </motion.div>
     
