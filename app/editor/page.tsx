@@ -3,7 +3,7 @@ import RichTextEditor from "../components/rich-text-editor/RichTextEditor"
 import Header from "../components/Header"
 import GenerateLink from "../components/GenerateLink"
 import { useState } from "react"
-import Sidebar from "../components/Sidebar"
+import Sidebar from "../components/Sidebar.tsx"
 
 
 const documents = [
