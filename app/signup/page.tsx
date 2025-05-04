@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignUpPage() {
@@ -8,15 +9,44 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: replace with real sign-up logic
     if (password !== confirm) {
       alert('Passwords do not match');
       return;
     }
-    alert(`Signing up with:\nName: ${name}\nEmail: ${email}`);
+
+    try {
+      const response = await fetch('/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'userSignup',
+          email,
+          username: name,
+          password,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok && data.status === 'success') {
+        // Store token (adjust storage mechanism as needed)
+        localStorage.setItem('token', data.token);
+        // Redirect after successful signup
+        router.push('/home');
+      } else {
+        // Handle errors returned by the API
+        const message = data.message || 'Signup failed';
+        alert(message);
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      alert('An unexpected error occurred. Please try again.');
+    }
   };
 
   return (
