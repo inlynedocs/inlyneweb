@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
           {documents.map((doc) => (
             <li key={doc}>
               <a
-                href={`/${doc}`}
+                href={`/editor/${doc}`}
                 className="flex items-center p-2 rounded hover:bg-gray-100"
               >
                 <span className="flex-1 truncate">
