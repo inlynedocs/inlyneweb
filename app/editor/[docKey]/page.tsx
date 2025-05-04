@@ -7,37 +7,34 @@ import Sidebar from '../../components/Sidebar';
 import RichTextEditor from '../../components/rich-text-editor/RichTextEditor';
 
 export default function DocEditorPage() {
-  const { docKey } = useParams();                // grabs { docKey } from /editor/:docKey
+  const { docKey: raw } = useParams();            // → the dynamic segment from /editor/abc123
+  const docKey = Array.isArray(raw) ? raw[0] : raw; // handle array case
   const [docs, setDocs] = useState<string[]>([]);
 
-  // Load the same persisted list from localStorage
+  // load your persisted list so the sidebar stays in sync
   useEffect(() => {
     const stored = localStorage.getItem('inlyne-docs');
-    if (stored) {
-      try {
-        setDocs(JSON.parse(stored));
-      } catch {
-        setDocs([]);
-      }
-    }
+    if (stored) setDocs(JSON.parse(stored));
   }, []);
 
-  // Local state for the editor’s HTML
+  // local state for the HTML content
   const [content, setContent] = useState('<p></p>');
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar with the same docs list */}
       <Sidebar documents={docs} />
 
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-6 overflow-auto">
-          {/* Your existing RichTextEditor now gets the dynamic docKey */}
-          <RichTextEditor
-            content={content}
-            onChange={setContent}
-            docKey={docKey}
-          />
+          {docKey ? (
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              docKey={docKey}           // ← crucial for sync!
+            />
+          ) : (
+            <p>Loading document…</p>
+          )}
         </main>
       </div>
     </div>

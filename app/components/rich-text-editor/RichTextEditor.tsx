@@ -19,7 +19,7 @@ const WS_URL = `${API_BASE}/ws`;
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
-  docKey?: string;
+  docKey: string;
 }
 
 export default function RichTextEditor({
@@ -29,8 +29,9 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const stompRef = useRef<Client | null>(null);
 
-  // initialize editor with your original UI classes
+  // 1) init Tiptap with your exact styling
   const editor = useEditor({
+    editable: true,
     extensions: [
       StarterKit.configure({
         bulletList: { HTMLAttributes: { class: 'list-disc ml-3' } },
@@ -44,12 +45,13 @@ export default function RichTextEditor({
     content,
     autofocus: 'end',
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-      // publish local edits
-      if (stompRef.current?.active && docKey) {
+      const html = editor.getHTML();
+      onChange(html);
+      // 4) publish local changes
+      if (stompRef.current?.active) {
         stompRef.current.publish({
           destination: `/app/edit/${docKey}`,
-          body: JSON.stringify({ content: editor.getHTML() }),
+          body: JSON.stringify({ content: html }),
         });
       }
     },
@@ -60,44 +62,47 @@ export default function RichTextEditor({
     },
   });
 
-  // fetch existing doc when docKey changes
+  // 2) fetch initial content once
   useEffect(() => {
-    if (!docKey || !editor) return;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/docs/${docKey}`);
-        if (!res.ok) throw new Error('Not found');
-        const { content: initial } = await res.json();
-        editor.commands.setContent(initial || '');
-      } catch (err) {
-        console.error('Fetch failed:', err);
-      }
-    })();
+    if (!editor) return;
+    fetch(`${API_BASE}/docs/${docKey}`)
+      .then((r) => r.json())
+      .then((doc) => {
+        editor.commands.setContent(doc.content || '');
+      })
+      .catch(console.error);
   }, [docKey, editor]);
 
-  // setup STOMP subscription when docKey changes
+  // 3) STOMP subscribe + sync
   useEffect(() => {
-    if (!docKey || !editor) return;
+    if (!editor) return;
 
+    // tear down previous
     stompRef.current?.deactivate();
+
     const client = new Client({
       webSocketFactory: () => new SockJS(WS_URL),
       reconnectDelay: 5000,
       heartbeatIncoming: 0,
       heartbeatOutgoing: 20000,
     });
+
     client.onConnect = () => {
       client.subscribe(`/topic/docs/${docKey}`, (msg) => {
         const { content: incoming } = JSON.parse(msg.body);
+        // only overwrite if it’s different
         if (editor.getHTML() !== incoming) {
           editor.commands.setContent(incoming);
         }
       });
     };
+
     client.activate();
     stompRef.current = client;
 
-    return () => void client.deactivate();
+    return () => {
+      client.deactivate();
+    };
   }, [docKey, editor]);
 
   if (!editor) return null;
