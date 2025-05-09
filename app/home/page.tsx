@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE = "https://localhost:8080";
 const DEFAULT_DOCS = ['Test1','Test2','Test3','Test4','Test5','Test6'];
 
 export default function InlyneHomepage() {

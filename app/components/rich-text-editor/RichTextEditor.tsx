@@ -13,7 +13,7 @@ import MenuBar from './Menubar';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE = "https://localhost:8080";
 const WS_URL = `${API_BASE}/ws`;
 
 interface RichTextEditorProps {
@@ -50,14 +50,14 @@ export default function RichTextEditor({
       // 4) publish local changes
       if (stompRef.current?.active) {
         stompRef.current.publish({
-          destination: `/app/edit/${docKey}`,
+          destination: `/app/editor/${docKey}`,
           body: JSON.stringify({ content: html }),
         });
       }
     },
     editorProps: {
       attributes: {
-        class: 'min-h-[156px] border rounded-md bg-slate-50 py-2 px-3 focus:outline-none',
+        class: 'min-h-[156px] backdrop-blur-sm shadow-md rounded-md bg-slate-50 py-2 px-3 focus:outline-none',
       },
     },
   });
