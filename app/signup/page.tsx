@@ -155,7 +155,7 @@ export default function SignupPage() {
           <div className="w-full flex items-center justify-center">
             <button
               type="submit"
-              className="p-2 px-6 border-[#EC6D26] border-1 bg-white rounded-xl text-[#EC6D26] hover:bg-[#EC6D26] hover:text-white font-semibold transition"
+              className="p-2 px-6 border-[#EC6D26] border-2 bg-white rounded-xl text-[#EC6D26] hover:bg-[#EC6D26] hover:text-white font-semibold transition cursor-pointer"
             >
               Sign Up
             </button>
