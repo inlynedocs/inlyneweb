@@ -9,7 +9,7 @@ const API_BASE = 'https://api.inlyne.link';
 
 // Shared input styles (edit here to update all inputs)
 const inputClass =
-  'w-full px-4 py-2 bg-brand-ivory text-brand-black border-2 border-black ' +
+  'w-full px-4 py-2 bg-white text-black border-2 border-black ' +
   'rounded-lg focus:outline-none focus:ring-1 focus:ring-black transition';
 
 export default function SignupPage() {
@@ -20,6 +20,8 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  // track if email field was touched
+  const [emailTouched, setEmailTouched] = useState(false);
 
   // password criteria
   const [isLongEnough, setIsLongEnough] = useState(false);
@@ -91,8 +93,9 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
               required
-              className={`${inputClass} ${emailRegex.test(email) ? '' : 'border-red-500 focus:ring-red-500'}`}
+              className={`${inputClass} ${emailTouched && !emailRegex.test(email) ? 'border-red-500 focus:ring-red-500' : 'border-black focus:ring-black'}`}
             />
           </div>
 
@@ -121,17 +124,17 @@ export default function SignupPage() {
           </div>
 
           {/* Password criteria: only show unmet rules with X mark */}
-            <ul className="pl-4 text-xs space-y-1">
-              <li className={`flex items-center text-black overflow-hidden transition-all duration-300 ${isLongEnough ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
-                <span className="mr-2">❌</span>At least 12 characters
-              </li>
-              <li className={`flex items-center text-black overflow-hidden transition-all duration-300 ${hasSymbolAndNumber ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
-                <span className="mr-2">❌</span>Contains a symbol and a number
-              </li>
-              <li className={`flex items-center textlack overflow-hidden transition-all duration-300 ${hasUpperLower ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
-                <span className="mr-2">❌</span>Contains uppercase & lowercase letters
-              </li>
-            </ul>
+          <ul className="pl-4 text-xs space-y-1">
+            <li className={`flex items-center text-brand-black overflow-hidden transition-all duration-300 ${isLongEnough ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+              <span className="mr-2">❌</span>At least 12 characters
+            </li>
+            <li className={`flex items-center text-brand-black overflow-hidden transition-all duration-300 ${hasSymbolAndNumber ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+              <span className="mr-2">❌</span>Contains a symbol and a number
+            </li>
+            <li className={`flex items-center text-brand-black overflow-hidden transition-all duration-300 ${hasUpperLower ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+              <span className="mr-2">❌</span>Contains uppercase & lowercase letters
+            </li>
+          </ul>
 
 {/* Confirm Password */}
           <div>
@@ -152,7 +155,7 @@ export default function SignupPage() {
           <div className="w-full flex items-center justify-center">
             <button
               type="submit"
-              className="p-2 px-6 bg-[#EC6D26] rounded-xl text-white shadow-md font-bold transition cursor-pointer"
+              className="p-2 px-6 border-[#EC6D26] border-1 bg-white rounded-xl text-[#EC6D26] hover:bg-[#EC6D26] hover:text-white font-semibold transition"
             >
               Sign Up
             </button>
