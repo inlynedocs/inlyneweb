@@ -51,7 +51,7 @@ export default function InlyneHomepage() {
             transition={{ delay: 0.5 }}
           >
             <Link href="/login" passHref>
-              <Button size="lg">Login</Button>
+              <Button size="lg" className="cursor-pointer">Login</Button>
             </Link>
 
             <form onSubmit={handleSubmit} className="flex space-x-2">
@@ -63,7 +63,7 @@ export default function InlyneHomepage() {
                 className="w-80 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Input Dockey or URL"
               />
-              <Button type="submit" size="lg">Go</Button>
+              <Button type="submit" className="cursor-pointer" size="lg">Go</Button>
             </form>
           </motion.div>
         </div>
