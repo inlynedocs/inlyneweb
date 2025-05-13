@@ -1,160 +1,168 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function SignUpPage() {
-  const [name, setName] = useState('');
+// Base URL for all API calls
+const API_BASE = 'https://api.inlyne.link';
+
+// Shared input styles (edit here to update all inputs)
+const inputClass =
+  'w-full px-4 py-2 bg-brand-ivory text-brand-black border-2 border-black ' +
+  'rounded-lg focus:outline-none focus:ring-1 focus:ring-black transition';
+
+export default function SignupPage() {
+  const router = useRouter();
+
+  // form state
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const router = useRouter();
+
+  // password criteria
+  const [isLongEnough, setIsLongEnough] = useState(false);
+  const [hasSymbolAndNumber, setHasSymbolAndNumber] = useState(false);
+  const [hasUpperLower, setHasUpperLower] = useState(false);
+
+  // regex rules
+  const emailRegex = /^(([^<>()\[\]\\.,;:"]+(\.[^<>()\[\]\\.,;:"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  const pwdLenRe = /^.{12,}$/;
+  const pwdSymNumRe = /(?=.*?[0-9])(?=.*?[#?!@$%^&*\-])/;
+  const pwdCaseRe = /(?=.*?[A-Z])(?=.*?[a-z])/;
+
+  // validate password criteria on change
+  useEffect(() => {
+    setIsLongEnough(pwdLenRe.test(password));
+    setHasSymbolAndNumber(pwdSymNumRe.test(password));
+    setHasUpperLower(pwdCaseRe.test(password));
+  }, [password]);
+
+  const passwordsMatch = password === confirm;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) {
-      alert('Passwords do not match');
+    if (
+      !emailRegex.test(email) ||
+      !username.trim() ||
+      !isLongEnough ||
+      !hasSymbolAndNumber ||
+      !hasUpperLower ||
+      !passwordsMatch
+    ) {
+      alert('Please complete all fields and meet password criteria.');
       return;
     }
 
     try {
-      const response = await fetch('/user', {
+      const res = await fetch(`${API_BASE}/user`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'userSignup',
-          email,
-          username: name,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'userSignup', email, username, password }),
       });
-      const data = await response.json();
-
-      if (response.ok && data.status === 'success') {
-        // Store token (adjust storage mechanism as needed)
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
         localStorage.setItem('token', data.token);
-        // Redirect after successful signup
         router.push('/home');
       } else {
-        // Handle errors returned by the API
-        const message = data.message || 'Signup failed';
-        alert(message);
+        alert(data.message || 'Signup failed');
       }
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong. Please try again.');
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-brand-ivory flex justify-center items-center p-4">
-      <div className="
-          w-full max-w-md 
-          bg-brand-cream 
-          rounded-2xl p-8 
-          shadow-[0_-4px_6px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]
-        "
-      >
+    <div className="min-h-screen bg-[#f4f4f7] flex justify-center items-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-[0_-4px_6px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]">
         <div className="flex justify-center mb-6">
-          <Link href="/home" passHref>
-          <img
-            src="/inlyne_logo.png"
-            alt="Inlyne Logo"
-            style={{ width: '150px', height: 'auto' }}
-          />
+          <Link href="/" passHref>
+            <img src="/inlyne_logo.png" alt="Inlyne Logo" style={{ width: '150px' }} />
           </Link>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-brand-black">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="
-                w-full px-4 py-2
-                bg-brand-ivory text-brand-black
-                border-2 border-brand-olive rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-brand-orange
-                transition
-              "
-            />
-          </div>
-          <div>
-            <label className="block mb-1 text-sm font-medium text-brand-black">
-              Email
-            </label>
+            <label className="block mb-1 text-sm font-medium text-brand-black">Email</label>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
-              className="
-                w-full px-4 py-2
-                bg-brand-ivory text-brand-black
-                border-2 border-brand-olive rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-brand-orange
-                transition
-              "
+              className={`${inputClass} ${emailRegex.test(email) ? '' : 'border-red-500 focus:ring-red-500'}`}
             />
           </div>
+
+          {/* Username */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-brand-black">
-              Password
-            </label>
+            <label className="block mb-1 text-sm font-medium text-brand-black">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-brand-black">Password</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               required
-              className="
-                w-full px-4 py-2
-                bg-brand-ivory text-brand-black
-                border-2 border-brand-olive rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-brand-orange
-                transition
-              "
+              className={inputClass}
             />
           </div>
+
+          {/* Password criteria: only show unmet rules with X mark */}
+            <ul className="pl-4 text-xs space-y-1">
+              <li className={`flex items-center text-black overflow-hidden transition-all duration-300 ${isLongEnough ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+                <span className="mr-2">❌</span>At least 12 characters
+              </li>
+              <li className={`flex items-center text-black overflow-hidden transition-all duration-300 ${hasSymbolAndNumber ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+                <span className="mr-2">❌</span>Contains a symbol and a number
+              </li>
+              <li className={`flex items-center textlack overflow-hidden transition-all duration-300 ${hasUpperLower ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
+                <span className="mr-2">❌</span>Contains uppercase & lowercase letters
+              </li>
+            </ul>
+
+{/* Confirm Password */}
           <div>
-            <label className="block mb-1 text-sm font-medium text-brand-black">
-              Confirm Password
-            </label>
+            <label className="block mb-1 text-sm font-medium text-brand-black">Confirm Password</label>
             <input
               type="password"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={e => setConfirm(e.target.value)}
               required
-              className="
-                w-full px-4 py-2
-                bg-brand-ivory text-brand-black
-                border-2 border-brand-olive rounded-lg
-                focus:outline-none focus:ring-2 focus:ring-brand-orange
-                transition
-              "
+              className={`${inputClass} ${confirm === '' || password === confirm ? '' : 'border-red-500 focus:ring-red-500'}`}
             />
+            {confirm && password !== confirm && (
+              <p className="mt-1 text-xs text-red-500">Passwords don’t match</p>
+            )}
           </div>
-          <button
-            type="submit"
-            className="
-              w-full py-3 mt-4
-              bg-brand-orange text-brand-ivory rounded-lg
-              hover:bg-brand-orange/90 transition
-            "
-          >
-            Sign Up
-          </button>
+
+          {/* Sign Up button */}
+          <div className="w-full flex items-center justify-center">
+            <button
+              type="submit"
+              className="p-2 px-6 bg-[#EC6D26] rounded-xl text-white shadow-md font-bold transition cursor-pointer"
+            >
+              Sign Up
+            </button>
+          </div>
         </form>
-        <p className="mt-4 text-center text-sm text-brand-black">
+
+        <p className="mt-4 text-center text-sm text-black">
           Already have an account?{' '}
-          <Link href="/login" className="text-brand-orange hover:underline">
-            Log in
+          <Link href="/login" className="text-[#0000FF] hover:underline">
+            Login
           </Link>
         </p>
       </div>
