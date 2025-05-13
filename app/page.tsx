@@ -70,7 +70,7 @@ export default function InlyneHomepage() {
       </section>
 
       {/* Footer */}
-      <footer className="shadow-[0_-2px_4px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] pt-6 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <footer className="shadow-[0_-2px_4px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] bg-[#f4f4f7] pt-6 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
         © {new Date().getFullYear()} Inlyne. All rights reserved.
       </footer>
     </div>
