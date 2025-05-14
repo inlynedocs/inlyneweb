@@ -133,7 +133,8 @@ export default function SignupPage() {
           </div>
 
           {/* Password criteria: only show unmet rules with X mark */}
-          <ul className="pl-4 text-xs space-y-1">
+          {(!isLongEnough || !hasSymbolAndNumber || !hasUpperLower) && (
+          <ul className="pl-4 text-xs">
             <li className={`flex items-center text-brand-black overflow-hidden transition-all duration-300 ${isLongEnough ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
               <span className="mr-2">❌</span>At least 12 characters
             </li>
@@ -144,8 +145,8 @@ export default function SignupPage() {
               <span className="mr-2">❌</span>Contains uppercase & lowercase letters
             </li>
           </ul>
-
-{/* Confirm Password */}
+          )}
+        {/* Confirm Password */}
           <div>
             <label className="block mb-1 text-sm font-medium text-brand-black">Confirm Password</label>
             <input
