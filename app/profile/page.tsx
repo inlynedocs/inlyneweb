@@ -22,31 +22,35 @@ export default function ProfilePage() {
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
-    // Ensure code runs only on client
     if (typeof window === 'undefined') return;
-
     const token = localStorage.getItem('token');
     if (!token) {
       router.push('/login');
       return;
     }
 
-    // Fetch user profile
     const fetchProfile = async () => {
       try {
         const res = await fetch(`${API_BASE}/user`, {
-          method: 'GET',
+          method: 'POST',
           headers: {
-            'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
+          body: JSON.stringify({ type: 'getUserProfile' }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error('Profile fetch error body:', text);
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const data = await res.json();
         setUser({
           userName: data.username || data.newUsername || '',
           email: data.email || data.newEmail || '',
-          avatarUrl: data.pfpUrl || data.avatarUrl || '',
+          avatarUrl: data.avatarUrl || data.pfpUrl || '',
         });
       } catch (err: any) {
         console.error('Failed to fetch profile:', err);
@@ -65,37 +69,38 @@ export default function ProfilePage() {
       alert('Passwords do not match');
       return;
     }
-
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Not authenticated');
       router.push('/login');
       return;
     }
-
     try {
       const updatePromises: Promise<Response>[] = [];
-
       if (user.userName) {
         updatePromises.push(
           fetch(`${API_BASE}/user`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({ type: 'updateUsername', newUsername: user.userName }),
           })
         );
       }
-
       if (user.email) {
         updatePromises.push(
           fetch(`${API_BASE}/user`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({ type: 'updateUserEmail', newEmail: user.email }),
           })
         );
       }
-
       if (password) {
         const oldPassword = window.prompt('Enter your current password:');
         if (!oldPassword) {
@@ -105,12 +110,14 @@ export default function ProfilePage() {
         updatePromises.push(
           fetch(`${API_BASE}/user`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({ type: 'updateUserPassword', oldPassword, newPassword: password }),
           })
         );
       }
-
       const responses = await Promise.all(updatePromises);
       for (const res of responses) {
         const data = await res.json();
@@ -118,7 +125,6 @@ export default function ProfilePage() {
           throw new Error(data.message || 'Update failed');
         }
       }
-
       alert('Profile updated');
       router.refresh();
     } catch (err: any) {
