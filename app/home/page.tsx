@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 
 // Toggle maintenance mode here
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // Bypass credentials in maintenance mode
 const BYPASS_USERNAME = 'adminbrar';
 const BYPASS_PASSWORD = 'jivajBRAR0123@';
