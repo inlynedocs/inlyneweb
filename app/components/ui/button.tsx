@@ -20,10 +20,6 @@ export const Button: React.FC<ButtonProps> = ({ size = 'sm', className = '', chi
       font-semibold
       rounded-2xl
       shadow
-      focus:outline-none
-      focus:ring-2
-      focus:ring-offset-2
-      focus:ring-[#EC6D26]
       cursor-pointer
       ${className}
     `}
