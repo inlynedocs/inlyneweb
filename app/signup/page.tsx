@@ -14,7 +14,7 @@ const inputClass =
   'w-full px-4 py-2 bg-white text-black border-2 border-black ' +
   'rounded-lg focus:outline-none focus:ring-1 focus:ring-black transition';
 
-const hazardClass = 'mr-1 inline-block'
+const hazardClass = 'mr-1 inline-block';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function SignupPage() {
   const [hasUpperLower, setHasUpperLower] = useState(false);
 
   // regex rules
-  const emailRegex = /^(([^<>()\[\]\\.,;:"]+(\.[^<>()\[\]\\.,;:"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  const emailRegex = /^(([^<>()\[\]\\.,;:\"']+(\.[^<>()\[\]\\.,;:\"']+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   const pwdLenRe = /^.{12,}$/;
   const pwdSymNumRe = /(?=.*?[0-9])(?=.*?[#?!@$%^&*\-])/;
   const pwdCaseRe = /(?=.*?[A-Z])(?=.*?[a-z])/;
@@ -46,7 +46,6 @@ export default function SignupPage() {
   }, [password]);
 
   const passwordsMatch = password === confirm;
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +64,12 @@ export default function SignupPage() {
     try {
       const res = await fetch(`${API_BASE}/user`, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({ type: 'userSignup', email, username, password }),
+        // removed mode: 'no-cors' so JSON headers are transmitted properly
       });
       const data = await res.json();
       if (res.ok && data.status === 'success') {
@@ -134,7 +136,7 @@ export default function SignupPage() {
 
           {/* Password criteria: only show unmet rules with X mark */}
           {(!isLongEnough || !hasSymbolAndNumber || !hasUpperLower) && (
-          <ul className="pl-4 text-xs">
+          <ul className="pl-4 space-y-1 text-xs">
             <li className={`flex items-center text-brand-black overflow-hidden transition-all duration-300 ${isLongEnough ? 'opacity-0 h-0' : 'opacity-100 h-3'}`}>
               <span className="mr-2">❌</span>At least 12 characters
             </li>
@@ -146,7 +148,7 @@ export default function SignupPage() {
             </li>
           </ul>
           )}
-        {/* Confirm Password */}
+          {/* Confirm Password */}
           <div>
             <label className="block mb-1 text-sm font-medium text-brand-black">Confirm Password</label>
             <input
