@@ -44,7 +44,7 @@ export default function RichTextEditor({ content, onChange, docKey }: RichTextEd
       if (stompRef.current?.active) {
         try {
           stompRef.current.publish({
-            destination: `/app/editor/${docKey}`,
+            destination: `/edit/${docKey}`,
             body: JSON.stringify({ content: html }),
           });
         } catch (e) {
