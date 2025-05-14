@@ -17,13 +17,14 @@ export const Button: React.FC<ButtonProps> = ({ size = 'sm', className = '', chi
       bg-[#EC6D26]
       hover:bg-[#CD5512]
       text-white
-      font-medium
+      font-semibold
       rounded-2xl
       shadow
       focus:outline-none
       focus:ring-2
       focus:ring-offset-2
       focus:ring-[#EC6D26]
+      cursor-pointer
       ${className}
     `}
     {...props}
