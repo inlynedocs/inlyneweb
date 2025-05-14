@@ -9,27 +9,26 @@ interface SidebarProps {
 }
 
 /**
- * A reusable collapsible sidebar component.
- * @param documents - List of document filenames to display
+ * Collapsible sidebar with a subtle right‑edge shadow so it stands out against the main pane.
  */
 export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <aside
-      className={`flex flex-col bg-white border-r border-gray-100  transition-width duration-300 ease-in-out ${
-        collapsed ? 'w-20' : 'w-64'
-      }`}
+      className={`flex flex-col bg-[#f4f4f7] border-r border-gray-100 
+        shadow-[4px_0_6px_-2px_rgba(0,0,0,0.12)]
+        transition-width duration-300 ease-in-out
+        ${collapsed ? 'w-20' : 'w-64'}`}
     >
+      {/* logo + collapse button */}
       <div className="flex items-center justify-between p-4">
         <Link href="/home" passHref>
-        <img
-          src={
-            collapsed ? '/inlyne_bracket_icon.png' : '/inlyne_logo.png'
-          }
-          alt="Inlyne Logo"
-          className="h-8 w-auto"
-        />
+          <img
+            src={collapsed ? '/inlyne_bracket_icon.png' : '/inlyne_logo.png'}
+            alt="Inlyne Logo"
+            className="h-8 w-auto"
+          />
         </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -43,18 +42,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
         </button>
       </div>
 
+      {/* docs list */}
       <nav className="flex-1 overflow-auto px-2">
         <ul className="space-y-1">
           {documents.map((doc) => (
             <li key={doc}>
-              <a
+              <Link
                 href={`/editor/${doc}`}
                 className="flex items-center p-2 rounded hover:bg-gray-100"
               >
                 <span className="flex-1 truncate">
                   {collapsed ? doc.charAt(0) : doc}
                 </span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
