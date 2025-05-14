@@ -1,30 +1,63 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../components/Header';
 
 interface User {
-  fullName: string;
   userName: string;
   email: string;
   avatarUrl: string;
 }
 
-// Replace this with real fetched user data or props
-const initialUser: User = {
-  fullName: 'John Doe',
-  userName: 'johnny',
-  email: 'john.doe@example.com',
-  avatarUrl: 'avatar.png',
-};
+const API_BASE = 'https://api.inlyne.link';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User>(initialUser);
+  const router = useRouter();
+  const [user, setUser] = useState<User>({ userName: '', email: '', avatarUrl: '' });
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string>('');
+
+  useEffect(() => {
+    // Ensure code runs only on client
+    if (typeof window === 'undefined') return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    // Fetch user profile
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/user`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setUser({
+          userName: data.username || data.newUsername || '',
+          email: data.email || data.newEmail || '',
+          avatarUrl: data.pfpUrl || data.avatarUrl || '',
+        });
+      } catch (err: any) {
+        console.error('Failed to fetch profile:', err);
+        setErrorMsg(`Could not load profile: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,118 +67,90 @@ export default function ProfilePage() {
     }
 
     const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
-    if (!token || !userId) {
-      alert('You must be logged in to update your profile');
+    if (!token) {
+      alert('Not authenticated');
+      router.push('/login');
       return;
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    };
-
     try {
-      // Update username
-      if (user.userName !== initialUser.userName) {
-        const res = await fetch('/user', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            type: 'updateUsername',
-            newUsername: user.userName,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.status !== 'success') {
-          throw new Error(data.message || 'Failed to update username');
-        }
+      const updatePromises: Promise<Response>[] = [];
+
+      if (user.userName) {
+        updatePromises.push(
+          fetch(`${API_BASE}/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ type: 'updateUsername', newUsername: user.userName }),
+          })
+        );
       }
 
-      // Update email
-      if (user.email !== initialUser.email) {
-        const res = await fetch('/user', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            type: 'updateUserEmail',
-            userId,
-            newEmail: user.email,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.status !== 'success') {
-          throw new Error(data.message || 'Failed to update email');
-        }
+      if (user.email) {
+        updatePromises.push(
+          fetch(`${API_BASE}/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ type: 'updateUserEmail', newEmail: user.email }),
+          })
+        );
       }
 
-      // Update password
       if (password) {
-        const oldPassword = window.prompt('Please enter your current password:');
+        const oldPassword = window.prompt('Enter your current password:');
         if (!oldPassword) {
-          alert('Current password is required to change password');
+          alert('Current password required');
           return;
         }
-        const res = await fetch('/user', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            type: 'updateUserPassword',
-            userId,
-            oldPassword,
-            newPassword: password,
-          }),
-        });
+        updatePromises.push(
+          fetch(`${API_BASE}/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ type: 'updateUserPassword', oldPassword, newPassword: password }),
+          })
+        );
+      }
+
+      const responses = await Promise.all(updatePromises);
+      for (const res of responses) {
         const data = await res.json();
         if (!res.ok || data.status !== 'success') {
-          throw new Error(data.message || 'Failed to update password');
+          throw new Error(data.message || 'Update failed');
         }
       }
 
-      alert('Profile updated successfully');
-      // Optionally refresh or redirect
+      alert('Profile updated');
       router.refresh();
-    } catch (error: any) {
-      console.error('Profile update error:', error);
-      alert(error.message || 'An unexpected error occurred.');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'An error occurred');
     }
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading profile...</div>;
+  }
 
   return (
     <div>
       <Header />
       <div className="flex items-center justify-center h-screen">
-        <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-[0_-4px_6px_rgba(0,0,0,0.1),0_4px_6px_rgba(0,0,0,0.1)]">
+        <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">My Profile</h2>
-            <Link href="/home" className="text-indigo-600 hover:underline">
-              Back to Home
-            </Link>
+            <Link href="/home" className="text-indigo-600 hover:underline">Back to Home</Link>
           </div>
+          {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMsg}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col items-center">
-              <img
-                src={user.avatarUrl}
-                alt=""
-                className="w-24 h-24 rounded-full mb-2"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700">Full Name</label>
-              <input
-                type="text"
-                value={user.fullName}
-                onChange={(e) => setUser({ ...user, fullName: e.target.value })}
-                className="w-full mt-1 border rounded px-3 py-2"
-                required
-              />
+              <img src={user.avatarUrl || '/avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full mb-2" />
             </div>
             <div>
               <label className="block text-gray-700">Username</label>
               <input
                 type="text"
                 value={user.userName}
-                onChange={(e) => setUser({ ...user, userName: e.target.value })}
+                onChange={e => setUser({ ...user, userName: e.target.value })}
                 className="w-full mt-1 border rounded px-3 py-2"
                 required
               />
@@ -155,7 +160,7 @@ export default function ProfilePage() {
               <input
                 type="email"
                 value={user.email}
-                onChange={(e) => setUser({ ...user, email: e.target.value })}
+                onChange={e => setUser({ ...user, email: e.target.value })}
                 className="w-full mt-1 border rounded px-3 py-2"
                 required
               />
@@ -165,7 +170,7 @@ export default function ProfilePage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full mt-1 border rounded px-3 py-2"
                 placeholder="Leave blank to keep current"
               />
@@ -175,15 +180,12 @@ export default function ProfilePage() {
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full mt-1 border rounded px-3 py-2"
                 placeholder="Re-enter password"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
-            >
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded">
               Update Profile
             </button>
           </form>
