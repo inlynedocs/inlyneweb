@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import hazard from '../public/hazard.svg';
+import Image from 'next/image';
 
 // Base URL for all API calls
 const API_BASE = 'https://api.inlyne.link';
@@ -11,6 +13,8 @@ const API_BASE = 'https://api.inlyne.link';
 const inputClass =
   'w-full px-4 py-2 bg-white text-black border-2 border-black ' +
   'rounded-lg focus:outline-none focus:ring-1 focus:ring-black transition';
+
+const hazardClass = 'mr-1 inline-block'
 
 export default function SignupPage() {
   const router = useRouter();
@@ -43,6 +47,7 @@ export default function SignupPage() {
 
   const passwordsMatch = password === confirm;
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -60,6 +65,7 @@ export default function SignupPage() {
     try {
       const res = await fetch(`${API_BASE}/user`, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'userSignup', email, username, password }),
       });
@@ -91,6 +97,7 @@ export default function SignupPage() {
             <label className="block mb-1 text-sm font-medium text-brand-black">Email</label>
             <input
               type="email"
+              placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               onBlur={() => setEmailTouched(true)}
@@ -105,6 +112,7 @@ export default function SignupPage() {
             <input
               type="text"
               value={username}
+              placeholder="Username"
               onChange={e => setUsername(e.target.value)}
               required
               className={inputClass}
@@ -116,6 +124,7 @@ export default function SignupPage() {
             <label className="block mb-1 text-sm font-medium text-brand-black">Password</label>
             <input
               type="password"
+              placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -141,13 +150,16 @@ export default function SignupPage() {
             <label className="block mb-1 text-sm font-medium text-brand-black">Confirm Password</label>
             <input
               type="password"
+              placeholder="Confirm Password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
               required
               className={`${inputClass} ${confirm === '' || password === confirm ? '' : 'border-red-500 focus:ring-red-500'}`}
             />
             {confirm && password !== confirm && (
-              <p className="mt-1 text-xs text-red-500">Passwords don’t match</p>
+            <div className="p-1 pl-4 text-xs text-red-500">
+              <Image className={hazardClass} src={hazard} alt="hazard"></Image>Passwords don’t match
+              </div>
             )}
           </div>
 
