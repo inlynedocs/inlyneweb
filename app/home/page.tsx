@@ -67,7 +67,7 @@ export default function InlyneHomepage() {
     })();
   }, [token, maintenanceBypass, router]);
 
-  // Create a new document via API
+  // Create a new document via API (backend assigns token’s user as owner)
   const handleCreate = async () => {
     if (MAINTENANCE_MODE && !maintenanceBypass) {
       alert('Site in maintenance mode. Enter correct credentials to create docs.');
@@ -83,8 +83,8 @@ export default function InlyneHomepage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ type: 'create' }),
       });
@@ -93,7 +93,7 @@ export default function InlyneHomepage() {
       const key = url.split('/').pop()!;
 
       setDocs(prev => [key, ...prev.filter(k => k !== key)]);
-      router.push(`/editor/${key}`);
+      router.push(`/${key}`);
     } catch (err: any) {
       console.error('Create failed:', err);
       alert(`Error creating document: ${err.message}`);
@@ -155,20 +155,13 @@ export default function InlyneHomepage() {
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg">
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    router.push('/profile');
-                  }}
+                  onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
                   Profile
                 </button>
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    localStorage.removeItem('token');
-                    router.push('/login');
-                  }}
+                  onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.push('/login'); }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
                   Logout
