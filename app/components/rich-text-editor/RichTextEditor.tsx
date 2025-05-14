@@ -1,7 +1,6 @@
-// app/components/rich-text-editor/RichTextEditor.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -13,8 +12,8 @@ import MenuBar from './Menubar';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-const API_BASE = "https://localhost:8080";
-const WS_URL = `${API_BASE}/ws`;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
+const WS_URL = `${API_BASE}/ws`; // SockJS endpoint must be http(s), not ws(s)
 
 interface RichTextEditorProps {
   content: string;
@@ -22,14 +21,9 @@ interface RichTextEditorProps {
   docKey: string;
 }
 
-export default function RichTextEditor({
-  content,
-  onChange,
-  docKey,
-}: RichTextEditorProps) {
+export default function RichTextEditor({ content, onChange, docKey }: RichTextEditorProps) {
   const stompRef = useRef<Client | null>(null);
 
-  // 1) init Tiptap with your exact styling
   const editor = useEditor({
     editable: true,
     extensions: [
@@ -47,37 +41,37 @@ export default function RichTextEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onChange(html);
-      // 4) publish local changes
       if (stompRef.current?.active) {
-        stompRef.current.publish({
-          destination: `/app/editor/${docKey}`,
-          body: JSON.stringify({ content: html }),
-        });
+        try {
+          stompRef.current.publish({
+            destination: `/app/editor/${docKey}`,
+            body: JSON.stringify({ content: html }),
+          });
+        } catch (e) {
+          console.warn('STOMP publish error:', e);
+        }
       }
     },
     editorProps: {
       attributes: {
-        class: 'min-h-[156px] backdrop-blur-sm shadow-md rounded-md bg-slate-50 py-2 px-3 focus:outline-none',
+        class:
+          'min-h-[156px] backdrop-blur-sm shadow-md rounded-md bg-slate-50 py-2 px-3 focus:outline-none',
       },
     },
   });
 
-  // 2) fetch initial content once
+  // sync content prop into editor
   useEffect(() => {
-    if (!editor) return;
-    fetch(`${API_BASE}/docs/${docKey}`)
-      .then((r) => r.json())
-      .then((doc) => {
-        editor.commands.setContent(doc.content || '');
-      })
-      .catch(console.error);
-  }, [docKey, editor]);
+    if (editor) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
-  // 3) STOMP subscribe + sync
+  // STOMP subscription for real-time updates
   useEffect(() => {
     if (!editor) return;
 
-    // tear down previous
+    // disconnect previous
     stompRef.current?.deactivate();
 
     const client = new Client({
@@ -90,7 +84,6 @@ export default function RichTextEditor({
     client.onConnect = () => {
       client.subscribe(`/topic/docs/${docKey}`, (msg) => {
         const { content: incoming } = JSON.parse(msg.body);
-        // only overwrite if it’s different
         if (editor.getHTML() !== incoming) {
           editor.commands.setContent(incoming);
         }
@@ -103,7 +96,7 @@ export default function RichTextEditor({
     return () => {
       client.deactivate();
     };
-  }, [docKey, editor]);
+  }, [editor, docKey]);
 
   if (!editor) return null;
 
