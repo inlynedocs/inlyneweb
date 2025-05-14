@@ -20,6 +20,7 @@ export default function InlyneHomepage() {
   const [maintenanceBypass, setMaintenanceBypass] = useState(false);
   const [bypassUser, setBypassUser] = useState('');
   const [bypassPw, setBypassPw] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Retrieve JWT token from localStorage (set by signup/login)
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -82,8 +83,8 @@ export default function InlyneHomepage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ type: 'create' }),
       });
@@ -103,37 +104,32 @@ export default function InlyneHomepage() {
   if (MAINTENANCE_MODE && !maintenanceBypass) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="flex-col items-center justify-center">
-          <div className="flex w-full items-center justify-center">
-              <h1 className=" font-bold text-xl pt-10 px-10">SITE IN MAINTENANCE MODE</h1>
-          </div>
-          <div className="bg-white p-8 rounded-lg shadow">
-            <h2 className="mb-4 text-xl font-semibold">Maintenance Mode</h2>
-            <input
-              type="text"
-              placeholder="Username"
-              value={bypassUser}
-              onChange={e => setBypassUser(e.target.value)}
-              className="w-full px-4 py-2 border rounded mb-2"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={bypassPw}
-              onChange={e => setBypassPw(e.target.value)}
-              className="w-full px-4 py-2 border rounded mb-4"
-            />
-            <button
-              onClick={() => {
-                if (bypassUser !== BYPASS_USERNAME || bypassPw !== BYPASS_PASSWORD) {
-                  alert('Incorrect username or password');
-                }
-              }}
-              className="w-full py-2 bg-gray-500 font-bold text-white rounded"
-            >
-              Submit
-            </button>
-          </div>
+        <div className="bg-white p-8 rounded-lg shadow">
+          <h2 className="mb-4 text-xl font-semibold">Maintenance Mode</h2>
+          <input
+            type="text"
+            placeholder="Username"
+            value={bypassUser}
+            onChange={e => setBypassUser(e.target.value)}
+            className="w-full px-4 py-2 border rounded mb-2"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={bypassPw}
+            onChange={e => setBypassPw(e.target.value)}
+            className="w-full px-4 py-2 border rounded mb-4"
+          />
+          <button
+            onClick={() => {
+              if (bypassUser !== BYPASS_USERNAME || bypassPw !== BYPASS_PASSWORD) {
+                alert('Incorrect username or password');
+              }
+            }}
+            className="w-full py-2 bg-blue-600 text-white rounded"
+          >
+            Submit
+          </button>
         </div>
       </div>
     );
@@ -148,8 +144,38 @@ export default function InlyneHomepage() {
       <Sidebar documents={docs} />
 
       <main className="flex-1 overflow-auto bg-brand-ivory">
-        <header className="flex justify-end px-6 py-4 bg-white shadow-md">
-          <a href="/profile" className="hover:underline">My Profile</a>
+        <header className="flex justify-end px-10 py-4 bg-white shadow-md relative">
+          <div className="relative">
+            <img
+              src="/profileicon.svg"
+              alt="Profile Icon"
+              className="w-8 h-8 rounded cursor-pointer"
+              onClick={() => setMenuOpen(!menuOpen)}
+            />
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    router.push('/profile');
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <div className="flex justify-between items-center px-6 py-4">
