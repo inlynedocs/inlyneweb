@@ -73,7 +73,6 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
               'Content-Type': 'application/json',
               Authorization : `Bearer ${token}`,
             },
-            body: JSON.stringify({ content: html }),
           }
         ).catch(err => console.error('Auto-save failed', err));
       }
