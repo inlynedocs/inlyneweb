@@ -4,53 +4,49 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 
-// Toggle maintenance mode here
-const MAINTENANCE_MODE = false;
-// Bypass credentials in maintenance mode
-const BYPASS_USERNAME = 'adminbrar';
-const BYPASS_PASSWORD = 'jivajBRAR0123@';
+const MAINTENANCE_MODE  = false;
+const BYPASS_USERNAME   = 'adminbrar';
+const BYPASS_PASSWORD   = 'jivajBRAR0123@';
+const API_BASE          = 'https://api.inlyne.link';
 
-// Base URL for all API calls
-const API_BASE = 'https://api.inlyne.link';
+interface UserMini {
+  userName: string;
+  email   : string;
+}
 
 export default function InlyneHomepage() {
   const router = useRouter();
-  const [docs, setDocs] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [maintenanceBypass, setMaintenanceBypass] = useState(false);
-  const [bypassUser, setBypassUser] = useState('');
-  const [bypassPw, setBypassPw] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Retrieve JWT token from localStorage (set by signup/login)
+  const [docs, setDocs]                     = useState<string[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [maintenanceBypass, setMaintenanceBypass] = useState(false);
+  const [bypassUser, setBypassUser]         = useState('');
+  const [bypassPw, setBypassPw]             = useState('');
+  const [menuOpen, setMenuOpen]             = useState(false);
+  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '' });
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  // Handle maintenance bypass when credentials match
+  /* ─── maintenance bypass ─── */
   useEffect(() => {
     if (MAINTENANCE_MODE && bypassUser === BYPASS_USERNAME && bypassPw === BYPASS_PASSWORD) {
       setMaintenanceBypass(true);
     }
   }, [bypassUser, bypassPw]);
 
-  // Fetch docs the user can read/write on initial render
+  /* ─── fetch docs on mount ─── */
   useEffect(() => {
-    if (MAINTENANCE_MODE && !maintenanceBypass) {
-      setLoading(false);
-      return;
-    }
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    if (MAINTENANCE_MODE && !maintenanceBypass) { setLoading(false); return; }
+    if (!token) { router.push('/login'); return; }
 
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/docs`, {
-          method: 'POST',
+          method : 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            Accept        : 'application/json',
+            Authorization : `Bearer ${token}`,
           },
           body: JSON.stringify({ type: 'getDocsUserCanReadWrite' }),
         });
@@ -67,31 +63,57 @@ export default function InlyneHomepage() {
     })();
   }, [token, maintenanceBypass, router]);
 
-  // Create a new document via API (backend assigns token’s user as owner)
+  /* ─── fetch username + email for dropdown ─── */
+  useEffect(() => {
+    if (!token) return;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/user?requestType=getUserData`,
+          {
+            headers: {
+              Accept        : 'application/json',
+              Authorization : `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) {
+          console.error('User fetch error:', await res.text());
+          return;
+        }
+
+        const { username, email } = await res.json();
+        setUserMini({ userName: username ?? '', email: email ?? '' });
+      } catch (err) {
+        console.error('Failed to fetch mini user data', err);
+      }
+    })();
+  }, [token]);
+
+  /* ─── create doc ─── */
   const handleCreate = async () => {
     if (MAINTENANCE_MODE && !maintenanceBypass) {
       alert('Site in maintenance mode. Enter correct credentials to create docs.');
       return;
     }
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    if (!token) { router.push('/login'); return; }
 
     try {
       const res = await fetch(`${API_BASE}/docs`, {
-        method: 'POST',
+        method : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Accept        : 'application/json',
+          Authorization : `Bearer ${token}`,
         },
         body: JSON.stringify({ type: 'create' }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
       const { url } = await res.json();
       const key = url.split('/').pop()!;
-
       setDocs(prev => [key, ...prev.filter(k => k !== key)]);
       router.push(`/${key}`);
     } catch (err: any) {
@@ -100,7 +122,7 @@ export default function InlyneHomepage() {
     }
   };
 
-  // Maintenance login screen
+  /* ─── maintenance screen ─── */
   if (MAINTENANCE_MODE && !maintenanceBypass) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -144,6 +166,7 @@ export default function InlyneHomepage() {
       <Sidebar documents={docs} />
 
       <main className="flex-1 overflow-auto bg-brand-ivory">
+        {/* top bar */}
         <header className="flex justify-end px-10 py-4 bg-white shadow-md relative">
           <div className="relative">
             <img
@@ -152,8 +175,15 @@ export default function InlyneHomepage() {
               className="w-8 h-8 rounded cursor-pointer"
               onClick={() => setMenuOpen(!menuOpen)}
             />
+
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg">
+              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2">
+                {/* user info block */}
+                <div className="px-4 pb-2 border-b">
+                  <p className="font-semibold leading-tight truncate">{userMini.userName}</p>
+                  <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
+                </div>
+
                 <button
                   onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
@@ -161,7 +191,11 @@ export default function InlyneHomepage() {
                   Profile
                 </button>
                 <button
-                  onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.push('/login'); }}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                  }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
                   Logout

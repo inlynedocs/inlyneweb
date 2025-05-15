@@ -16,11 +16,11 @@ const API_BASE = 'https://api.inlyne.link';
 export default function ProfilePage() {
   const router = useRouter();
 
-  const [user, setUser]                 = useState<User>({ userName: '', email: '', avatarUrl: '' });
-  const [password, setPassword]         = useState('');
+  const [user, setUser]                     = useState<User>({ userName: '', email: '', avatarUrl: '' });
+  const [password, setPassword]             = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading]           = useState(true);
-  const [errorMsg, setErrorMsg]         = useState('');
+  const [loading, setLoading]               = useState(true);
+  const [errorMsg, setErrorMsg]             = useState('');
 
   /* ───────────────── fetch profile once ───────────────── */
   useEffect(() => {
@@ -34,25 +34,26 @@ export default function ProfilePage() {
 
     (async () => {
       try {
-        /* ----------- THIS IS THE ONLY CALL YOU ASKED TO FIX ----------- */
-        const res = await fetch(`${API_BASE}/user`, {
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        /* --------------------------------------------------------------- */
+        const res = await fetch(
+          `${API_BASE}/user?requestType=getUserData`,
+          {
+            headers: {
+              Accept        : 'application/json',
+              Authorization : `Bearer ${token}`,
+            },
+          }
+        );
 
         if (!res.ok) {
           console.error('Profile fetch error body:', await res.text());
-          throw new Error(`HTTP ${res.status}`);
+          throw new Error(`HTTP ${res.status}`);
         }
 
-        const data = await res.json();
+        const { username, email, pfpUrl } = await res.json();
         setUser({
-          userName : data.username  ?? '',
-          email    : data.email     ?? '',
-          avatarUrl: data.avatarUrl ?? '',
+          userName : username ?? '',
+          email    : email    ?? '',
+          avatarUrl: pfpUrl   ?? '',
         });
       } catch (err: any) {
         console.error('Failed to fetch profile:', err);
@@ -63,7 +64,7 @@ export default function ProfilePage() {
     })();
   }, [router]);
 
-  /* ───────────────── submit updates ───────────────── */
+  /* ───────────────── submit updates (unchanged) ───────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -73,16 +74,13 @@ export default function ProfilePage() {
     }
 
     const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    if (!token) { router.push('/login'); return; }
 
     try {
-      const updateCalls: Promise<Response>[] = [];
+      const calls: Promise<Response>[] = [];
 
       if (user.userName) {
-        updateCalls.push(
+        calls.push(
           fetch(`${API_BASE}/user`, {
             method : 'POST',
             headers: {
@@ -95,7 +93,7 @@ export default function ProfilePage() {
       }
 
       if (user.email) {
-        updateCalls.push(
+        calls.push(
           fetch(`${API_BASE}/user`, {
             method : 'POST',
             headers: {
@@ -111,7 +109,7 @@ export default function ProfilePage() {
         const oldPassword = window.prompt('Enter your current password:');
         if (!oldPassword) return;
 
-        updateCalls.push(
+        calls.push(
           fetch(`${API_BASE}/user`, {
             method : 'POST',
             headers: {
@@ -127,13 +125,10 @@ export default function ProfilePage() {
         );
       }
 
-      /* wait for all updates to finish */
-      const responses = await Promise.all(updateCalls);
+      const responses = await Promise.all(calls);
       for (const r of responses) {
         const body = await r.json();
-        if (!r.ok || body.status !== 'success') {
-          throw new Error(body.message ?? 'Update failed');
-        }
+        if (!r.ok || body.status !== 'success') throw new Error(body.message ?? 'Update failed');
       }
 
       alert('Profile updated');
@@ -159,16 +154,14 @@ export default function ProfilePage() {
             <Link href="/home" className="text-indigo-600 hover:underline">Back to Home</Link>
           </div>
 
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMsg}</div>
-          )}
+          {errorMsg && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMsg}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col items-center">
               <img
                 src={user.avatarUrl || '/avatar.png'}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full mb-2"
+                className="w-24 h-24 rounded-full mb-2 object-cover"
               />
             </div>
 
@@ -212,7 +205,7 @@ export default function ProfilePage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full mt-1 border rounded px-3 py-2"
-                placeholder="Re‑enter password"
+                placeholder="Re-enter password"
               />
             </div>
 
