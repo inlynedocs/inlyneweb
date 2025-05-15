@@ -159,7 +159,7 @@ export default function ProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col items-center">
               <img
-                src={user.avatarUrl || '/avatar.png'}
+                src={`${API_BASE}/${user.avatarUrl}` || '/avatar.png'}
                 alt="Avatar"
                 className="w-24 h-24 rounded-full mb-2 object-cover"
               />
