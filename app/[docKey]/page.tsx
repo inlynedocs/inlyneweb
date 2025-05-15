@@ -6,6 +6,12 @@ import Sidebar from '../components/Sidebar';
 import RichTextEditor from '../components/rich-text-editor/RichTextEditor';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
+interface UserMini {
+  userName: string;
+  email   : string;
+  avatarUrl: string;
+}
+
 
 export default function DocEditorPage() {
   const { docKey: raw } = useParams();
@@ -19,6 +25,7 @@ export default function DocEditorPage() {
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
   const [content, setContent] = useState('<p></p>');
+  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
 
   // UI state for profile dropdown
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,6 +37,35 @@ export default function DocEditorPage() {
     const stored = localStorage.getItem('inlyne-docs');
     if (stored) setDocs(JSON.parse(stored));
   }, []);
+
+  /* ─── fetch username + email for dropdown ─── */
+  useEffect(() => {
+    if (!token) return;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/user?requestType=getUserData`,
+          {
+            headers: {
+              Accept        : 'application/json',
+              Authorization : `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) {
+          console.error('User fetch error:', await res.text());
+          return;
+        }
+
+        const { username, email, pfpUrl } = await res.json();
+        setUserMini({ userName: username ?? '', email: email ?? '' , avatarUrl: pfpUrl ?? '' });
+      } catch (err) {
+        console.error('Failed to fetch mini user data', err);
+      }
+    })();
+  }, [token]);
 
   /* -------------------------- fetch document meta ------------------------- */
   useEffect(() => {
@@ -101,7 +137,7 @@ export default function DocEditorPage() {
       <Sidebar documents={docs} />
       <div className="flex-1 flex flex-col">
         {/* unified header with profile dropdown + doc controls */}
-        <header className="flex items-center justify-between px-6 py-4 bg-white shadow-md relative">
+        <header className="flex items-center justify-between px-6 py-3 bg-white shadow-md relative">
           <h2 className="text-lg font-medium truncate">Editing: {docKey}</h2>
 
           <div className="flex items-center space-x-4">
@@ -119,13 +155,17 @@ export default function DocEditorPage() {
             {/* profile icon dropdown */}
             <div className="relative">
               <img
-                src="/profileicon.svg"
+                src={`${API_BASE}/${userMini.avatarUrl}` ||"/profileicon.svg"}
                 alt="Profile Icon"
-                className="w-8 h-8 rounded cursor-pointer"
+                className="w-10 h-10 rounded-full object-cover cursor-pointer"
                 onClick={() => setMenuOpen(prev => !prev)}
               />
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg z-50">
+                  <div className="px-4 pb-2 border-b">
+                    <p className="font-semibold leading-tight truncate">{userMini.userName}</p>
+                    <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
+                  </div>
                   <button
                     onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"

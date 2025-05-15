@@ -12,6 +12,7 @@ const API_BASE          = 'https://api.inlyne.link';
 interface UserMini {
   userName: string;
   email   : string;
+  avatarUrl: string;
 }
 
 export default function InlyneHomepage() {
@@ -23,7 +24,7 @@ export default function InlyneHomepage() {
   const [bypassUser, setBypassUser]         = useState('');
   const [bypassPw, setBypassPw]             = useState('');
   const [menuOpen, setMenuOpen]             = useState(false);
-  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '' });
+  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -84,8 +85,8 @@ export default function InlyneHomepage() {
           return;
         }
 
-        const { username, email } = await res.json();
-        setUserMini({ userName: username ?? '', email: email ?? '' });
+        const { username, email, pfpUrl } = await res.json();
+        setUserMini({ userName: username ?? '', email: email ?? '' , avatarUrl: pfpUrl ?? '' });
       } catch (err) {
         console.error('Failed to fetch mini user data', err);
       }
@@ -167,12 +168,12 @@ export default function InlyneHomepage() {
 
       <main className="flex-1 overflow-auto bg-brand-ivory">
         {/* top bar */}
-        <header className="flex justify-end px-10 py-4 bg-white shadow-md relative">
+        <header className="flex justify-end px-10 py-3 bg-white shadow-md relative">
           <div className="relative">
             <img
-              src="/profileicon.svg"
+              src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
               alt="Profile Icon"
-              className="w-8 h-8 rounded cursor-pointer"
+              className="w-10 h-10 rounded-full object-cover cursor-pointer"
               onClick={() => setMenuOpen(!menuOpen)}
             />
 
