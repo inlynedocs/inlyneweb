@@ -110,8 +110,8 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
           })
-          .then((data: { content: string }) => {
-            const saved = data.content || '';
+          .then((data: { doc?: {content: string} }) => { // dooccccyyy
+            const saved = data.doc?.content || '';   // docococcy
             if (saved !== editor.getHTML()) {
               suppressRef.current = true;
               editor.commands.setContent(saved, false);
