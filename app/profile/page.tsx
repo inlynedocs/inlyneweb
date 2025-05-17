@@ -160,7 +160,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center">
               <img
                 src={`${API_BASE}/${user.avatarUrl}` || '/avatar.png'}
-                alt="Avatar"
+                alt="Profile Picture"
                 className="w-24 h-24 rounded-full mb-2 object-cover"
               />
             </div>

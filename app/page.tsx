@@ -19,7 +19,7 @@ export default function InlyneHomepage() {
     e.preventDefault()
     const key = dockey.trim()
     if (!key) return
-    router.push(`/editor/${key}`)
+    router.push(`/${key}`)
   }
 
   // common layout transition settings
