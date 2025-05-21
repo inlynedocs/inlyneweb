@@ -8,6 +8,8 @@ import Highlight      from '@tiptap/extension-highlight';
 import Image          from '@tiptap/extension-image';
 import Placeholder    from '@tiptap/extension-placeholder';
 import MenuBar        from './Menubar';
+import TextStyle      from '@tiptap/extension-text-style';
+import Color          from '@tiptap/extension-color';
 
 import SockJS               from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
@@ -37,6 +39,8 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
         bulletList : { HTMLAttributes: { class: 'list-disc ml-5'   }},
         orderedList: { HTMLAttributes: { class: 'list-decimal ml-5'}},
       }),
+      TextStyle,   // <-- enable inline fontSize & color
+      Color,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Highlight,
       Image,
@@ -45,7 +49,8 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
     editorProps: {
       attributes: {
         class:
-          'prose prose-lg min-h-screen flex-1 overflow-auto p-6 ' +
+          // removed "prose prose-lg" so inline font-size works
+          'min-h-screen flex-1 overflow-auto p-6 ' +
           'bg-white rounded-b-lg focus:outline-none',
       },
     },
@@ -110,8 +115,8 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
           })
-          .then((data: { doc?: {content: string} }) => { // dooccccyyy
-            const saved = data.doc?.content || '';   // docococcy
+          .then((data: { doc?: {content: string} }) => {
+            const saved = data.doc?.content || '';
             if (saved !== editor.getHTML()) {
               suppressRef.current = true;
               editor.commands.setContent(saved, false);
