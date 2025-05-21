@@ -17,7 +17,7 @@ export default function DocEditorPage() {
   const docKey = Array.isArray(raw) ? raw[0] : raw;
   const router = useRouter();
 
-  // If docKey is missing or wrong length, immediately redirect to /home
+ // If docKey is missing or wrong length, immediately redirect to /home
   useEffect(() => {
     if (!docKey || docKey.length !== 8) {
       router.replace('/home');

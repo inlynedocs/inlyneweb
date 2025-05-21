@@ -250,14 +250,12 @@ export default function InlyneHomepage() {
               key={doc}
               onClick={() => router.push(`/${doc}`)}
               className="bg-white rounded-lg shadow-sm overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-orange transform hover:scale-105 hover:shadow-lg transition duration-200">
-              <div className="h-40 flex items-center justify-center">
+              <div className="h-40 flex items-center justify-center shadow-xs">
                 <img
-                  src={`/previews/${doc}.png`}
+                  src={"file.svg"}
                   alt={`${doc} preview`}
-                  className="max-h-full"
-                  onError={e => {
-                    (e.currentTarget as HTMLImageElement).src = '/icons/document_placeholder.svg';
-                  }}
+                  className="w-20 h-20 object-cover"
+                 
                 />
               </div>
               <div className="p-4 text-center">

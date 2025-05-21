@@ -62,13 +62,13 @@ export default function InlyneHomepage() {
             }}
             className="mt-10 flex justify-center items-center space-x-4"
           >
-            {/* LOGIN: now motion-enabled for smooth position tween */}
+            {/* Signup: now motion-enabled for smooth position tween */}
             <motion.div
               layout="position"
               transition={{ layout: layoutTrans }}
             >
-              <Link href="/login" passHref>
-                <Button size="lg">Login</Button>
+              <Link href="/signup" passHref>
+                <Button size="lg">Sign up</Button>
               </Link>
             </motion.div>
 
