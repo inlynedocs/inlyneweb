@@ -7,18 +7,25 @@ import Link from 'next/link';
 // Base URL for all API calls
 const API_BASE = 'https://api.inlyne.link';
 
+// Your VS Code extension + publisher identifier:
+const VS_CODE_URI_PREFIX = 'vscode://inlyneio.inlyne/auth';
+
 // Shared input styles
 const inputClass =
   'w-full px-4 py-2 bg-brand-ivory text-brand-black border-2 border-brand-olive ' +
   'rounded-lg focus:outline-none focus:ring-1 focus:ring-black transition';
 
-export default function LoginPage() {
+export default function VscodeAuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  // grab the "redirect" param or fall back to internal /home
-  const redirectUri = searchParams.get('redirect') || '/home';
+
+  // If the extension opened this page it will pass ?redirect=vscode://…
+  // otherwise we fall back to our VS Code URI so that a missing redirect
+  // goes right back into the extension.
+  const rawRedirect = searchParams.get('redirect') || '';
+  const redirectUri = rawRedirect || VS_CODE_URI_PREFIX;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,14 +36,21 @@ export default function LoginPage() {
         body: JSON.stringify({ type: 'userLogin', email, password }),
       });
       const data = await res.json();
+
       if (res.ok && data.status === 'success') {
-        // if VS Code URI, bounce out to it; otherwise client-route internally
-        const returnTo = `${redirectUri}${
-          redirectUri.includes('?') ? '&' : '?'
-        }token=${data.token}&email=${encodeURIComponent(email)}`;
+        // build the return URL, adding token & email
+        const sep = redirectUri.includes('?') ? '&' : '?';
+        const returnTo = [
+          redirectUri,
+          `token=${encodeURIComponent(data.token)}`,
+          `email=${encodeURIComponent(email)}`,
+        ].join(sep);
+
         if (redirectUri.startsWith('vscode://')) {
+          // drop back into VS Code
           window.location.href = returnTo;
         } else {
+          // normal web-app flow
           localStorage.setItem('token', data.token);
           if (data.pfpUrl) localStorage.setItem('pfpUrl', data.pfpUrl);
           router.push(returnTo);
@@ -85,7 +99,7 @@ export default function LoginPage() {
           <div className="w-full flex items-center justify-center">
             <button
               type="submit"
-              className="p-2 px-6 border-[#EC6D26] border-2 bg-white rounded-xl text-[#EC6D26] hover:bg-[#EC6D26] hover:text-white font-semibold transition cursor-pointer"
+              className="p-2 px-6 border-[#EC6D26] border-2 bg-white rounded-xl text-[#EC6D26] hover:bg-[#EC6D26] hover:text-white font-semibold transition"
             >
               Login
             </button>

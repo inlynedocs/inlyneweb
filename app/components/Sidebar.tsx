@@ -1,25 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
-interface SidebarProps {
-  documents: string[];
-}
+const API_BASE = 'https://api.inlyne.link';
 
-/**
- * Collapsible sidebar with a subtle right‑edge shadow so it stands out against the main pane.
- */
-export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
+export const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [documents, setDocuments] = useState<string[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    const loadFromLocal = () => {
+      const stored = localStorage.getItem('inlyne-docs');
+      try {
+        setDocuments(stored ? JSON.parse(stored) : []);
+      } catch {
+        setDocuments([]);
+      }
+    };
+
+    if (token) {
+      fetch(`${API_BASE}/user/docs/recent`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('API error');
+          return res.json();
+        })
+        .then((data: { docs: string[] }) => {
+          setDocuments(data.docs);
+          // optionally sync back to localStorage:
+          localStorage.setItem('inlyne-docs', JSON.stringify(data.docs));
+        })
+        .catch(() => {
+          loadFromLocal();
+        });
+    } else {
+      loadFromLocal();
+    }
+  }, []);
 
   return (
     <aside
-      className={`flex flex-col bg-[#f4f4f7] border-r border-gray-100 
-        shadow-[4px_0_6px_-2px_rgba(0,0,0,0.12)]
-        transition-width duration-300 ease-in-out
-        ${collapsed ? 'w-22' : 'w-64'}`}
+      className={`flex flex-col bg-[#f4f4f7] border-r border-gray-100
+                  shadow-[4px_0_6px_-2px_rgba(0,0,0,0.12)]
+                  transition-width duration-300 ease-in-out
+                  ${collapsed ? 'w-22' : 'w-64'}`}
     >
       {/* logo + collapse button */}
       <div className="flex items-center justify-between p-4">
@@ -27,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ documents }) => {
           <img
             src={collapsed ? '/inlyne_bracket_icon.png' : '/inlyne_logo.png'}
             alt="Inlyne Logo"
-            className={collapsed? 'h-10 w-10' : 'h-10 w-auto'}
+            className={collapsed ? 'h-10 w-10' : 'h-10 w-auto'}
           />
         </Link>
         <button

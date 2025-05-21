@@ -8,15 +8,26 @@ import RichTextEditor from '../components/rich-text-editor/RichTextEditor';
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
 interface UserMini {
   userName: string;
-  email   : string;
+  email:   string;
   avatarUrl: string;
 }
-
 
 export default function DocEditorPage() {
   const { docKey: raw } = useParams();
   const docKey = Array.isArray(raw) ? raw[0] : raw;
   const router = useRouter();
+
+  // If docKey is missing or wrong length, immediately redirect to /home
+  useEffect(() => {
+    if (!docKey || docKey.length !== 8) {
+      router.replace('/home');
+    }
+  }, [docKey, router]);
+
+  // Prevent any rendering while redirecting
+  if (!docKey || docKey.length !== 8) {
+    return null;
+  }
 
   // Sidebar docs list
   const [docs, setDocs] = useState<string[]>([]);
@@ -25,9 +36,7 @@ export default function DocEditorPage() {
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
   const [content, setContent] = useState('<p></p>');
-  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
-
-  // UI state for profile dropdown
+  const [userMini, setUserMini] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
   const [menuOpen, setMenuOpen] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -41,7 +50,6 @@ export default function DocEditorPage() {
   /* ─── fetch username + email for dropdown ─── */
   useEffect(() => {
     if (!token) return;
-
     (async () => {
       try {
         const res = await fetch(
@@ -53,14 +61,9 @@ export default function DocEditorPage() {
             },
           }
         );
-
-        if (!res.ok) {
-          console.error('User fetch error:', await res.text());
-          return;
-        }
-
+        if (!res.ok) throw new Error(await res.text());
         const { username, email, pfpUrl } = await res.json();
-        setUserMini({ userName: username ?? '', email: email ?? '' , avatarUrl: pfpUrl ?? '' });
+        setUserMini({ userName: username, email, avatarUrl: pfpUrl });
       } catch (err) {
         console.error('Failed to fetch mini user data', err);
       }
@@ -69,29 +72,38 @@ export default function DocEditorPage() {
 
   /* -------------------------- fetch document meta ------------------------- */
   useEffect(() => {
-    if (!docKey) return;
     setLoading(true);
     fetch(`${API_BASE}/${docKey}`, {
-      headers: { Accept: 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+      headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     })
-      .then(r => r.json())
+      .then(res => res.json())
       .then(data => {
-        if (data.status !== 'success') throw new Error(data.details || data.message);
+        if (data.status !== 'success') {
+          const message = data.details || data.message || 'Unknown error';
+          console.error('Load failed:', message);
+          alert(`Could not load document: ${message}`);
+          if (message.toLowerCase().includes('auth')) {
+            router.replace('/login');
+          } else {
+            router.replace('/home');
+          }
+          return;
+        }
         setAccessLevel(data.accessLevel);
         setIsPublic(data.doc.isPublic ?? false);
         if (data.accessLevel === 'writer') setContent(data.doc.content || '<p></p>');
       })
       .catch(err => {
-        console.error('Load failed:', err);
-        alert('Could not load document: ' + err.message);
-        if (err.message?.toLowerCase().includes('auth')) router.push('/login');
+        console.error('Fetch error:', err);
+        alert(`Could not load document: ${err.message || 'Fetch error'}`);
+        router.replace('/home');
       })
       .finally(() => setLoading(false));
   }, [docKey, token, router]);
 
   /* --------------------------------- save --------------------------------- */
   const handleSave = useCallback(async () => {
-    if (!token) return router.push('/login');
+    if (!token) return router.replace('/login');
     try {
       const res = await fetch(`${API_BASE}/docs/${docKey}`, {
         method: 'PUT',
@@ -99,17 +111,19 @@ export default function DocEditorPage() {
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
-      if (!res.ok || data.status !== 'success') throw new Error(data.message || `HTTP ${res.status}`);
+      if (!res.ok || data.status !== 'success') {
+        throw new Error(data.message || `HTTP ${res.status}`);
+      }
       alert('Saved!');
     } catch (err: any) {
       console.error('Save failed:', err);
-      alert('Save failed: ' + err.message);
+      alert('Save failed: ' + (err.message || 'Unknown error'));
     }
   }, [content, docKey, token, router]);
 
   /* --------------------------- toggle public flag ------------------------- */
   const handleToggle = useCallback(async () => {
-    if (!token) return router.push('/login');
+    if (!token) return router.replace('/login');
     try {
       const res = await fetch(`${API_BASE}/docs`, {
         method: 'POST',
@@ -121,25 +135,22 @@ export default function DocEditorPage() {
       setIsPublic(data.isPublic);
       alert(`Now ${data.isPublic ? 'Public' : 'Private'}`);
     } catch (err: any) {
-      console.error(err);
-      alert('Toggle failed: ' + err.message);
+      console.error('Toggle failed:', err);
+      alert('Toggle failed: ' + (err.message || 'Unknown error'));
     }
   }, [isPublic, docKey, token, router]);
 
-  /* --------------------------- render loading ----------------------------- */
-  if (loading || !docKey) {
+  /* -------------------------------- render -------------------------------- */
+  if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading…</div>;
   }
 
-  /* -------------------------------- render -------------------------------- */
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar documents={docs} />
+      <Sidebar/>
       <div className="flex-1 flex flex-col">
-        {/* unified header with profile dropdown + doc controls */}
         <header className="flex items-center justify-between px-6 py-3 bg-white shadow-md relative">
           <h2 className="text-lg font-medium truncate">Editing: {docKey}</h2>
-
           <div className="flex items-center space-x-4">
             {accessLevel === 'writer' && (
               <div className="flex space-x-3">
@@ -151,11 +162,9 @@ export default function DocEditorPage() {
                 </button>
               </div>
             )}
-
-            {/* profile icon dropdown */}
             <div className="relative">
               <img
-                src={`${API_BASE}/${userMini.avatarUrl}` ||"/profileicon.svg"}
+                src={`${API_BASE}/${userMini.avatarUrl}` || "/profileicon.svg"}
                 alt="Profile Icon"
                 className="w-10 h-10 rounded-full object-cover cursor-pointer"
                 onClick={() => setMenuOpen(prev => !prev)}
@@ -173,7 +182,7 @@ export default function DocEditorPage() {
                     Profile
                   </button>
                   <button
-                    onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.push('/login'); }}
+                    onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.replace('/login'); }}
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                   >
                     Logout
@@ -183,10 +192,8 @@ export default function DocEditorPage() {
             </div>
           </div>
         </header>
-
         <main className="flex-1 bg-gray-50 overflow-auto relative">
           <RichTextEditor content={content} onChange={setContent} docKey={docKey} />
-
           {accessLevel === 'writer' && (
             <button
               onClick={handleSave}

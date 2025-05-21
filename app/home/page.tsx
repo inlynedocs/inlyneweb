@@ -10,51 +10,73 @@ const BYPASS_PASSWORD   = 'jivajBRAR0123@';
 const API_BASE          = 'https://api.inlyne.link';
 
 interface UserMini {
-  userName: string;
-  email   : string;
+  userName : string;
+  email    : string;
   avatarUrl: string;
 }
 
 export default function InlyneHomepage() {
   const router = useRouter();
+  const token  = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  const [docs, setDocs]                     = useState<string[]>([]);
-  const [loading, setLoading]               = useState(true);
+  const [readWriteDocs,    setReadWriteDocs   ] = useState<string[]>([]);
+  const [ownedDocs,        setOwnedDocs       ] = useState<string[]>([]);
+  const [loading,          setLoading         ] = useState(true);
   const [maintenanceBypass, setMaintenanceBypass] = useState(false);
-  const [bypassUser, setBypassUser]         = useState('');
-  const [bypassPw, setBypassPw]             = useState('');
-  const [menuOpen, setMenuOpen]             = useState(false);
-  const [userMini, setUserMini]             = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
+  const [bypassUser,       setBypassUser      ] = useState('');
+  const [bypassPw,         setBypassPw        ] = useState('');
+  const [menuOpen,         setMenuOpen        ] = useState(false);
+  const [userMini,         setUserMini        ] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-  /* ─── maintenance bypass ─── */
+  // handle maintenance bypass credentials
   useEffect(() => {
     if (MAINTENANCE_MODE && bypassUser === BYPASS_USERNAME && bypassPw === BYPASS_PASSWORD) {
       setMaintenanceBypass(true);
     }
   }, [bypassUser, bypassPw]);
 
-  /* ─── fetch docs on mount ─── */
+  // fetch both read/write and owned docs
   useEffect(() => {
-    if (MAINTENANCE_MODE && !maintenanceBypass) { setLoading(false); return; }
-    if (!token) { router.push('/login'); return; }
+    if (MAINTENANCE_MODE && !maintenanceBypass) {
+      setLoading(false);
+      return;
+    }
+    if (!token) {
+      router.push('/login');
+      return;
+    }
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/docs`, {
-          method : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept        : 'application/json',
-            Authorization : `Bearer ${token}`,
-          },
-          body: JSON.stringify({ type: 'getDocsUserCanReadWrite' }),
-        });
+        const [rrRes, ownerRes] = await Promise.all([
+          fetch(`${API_BASE}/docs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type' : 'application/json',
+              Accept         : 'application/json',
+              Authorization  : `Bearer ${token}`,
+            },
+            body: JSON.stringify({ type: 'getDocsUserCanReadWrite' }),
+          }),
+          fetch(`${API_BASE}/docs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type' : 'application/json',
+              Accept         : 'application/json',
+              Authorization  : `Bearer ${token}`,
+            },
+            body: JSON.stringify({ type: 'getDocsUserIsOwner' }),
+          }),
+        ]);
 
-        if (!res.ok) throw new Error(`Failed to fetch docs: ${res.status}`);
-        const { docs: fetchedDocs } = await res.json();
-        setDocs(fetchedDocs);
+        if (!rrRes.ok)    throw new Error(`Failed to fetch writable docs: ${rrRes.status}`);
+        if (!ownerRes.ok) throw new Error(`Failed to fetch owned docs:    ${ownerRes.status}`);
+
+        const { docs: rw } = await rrRes.json();
+        const { docs: ow } = await ownerRes.json();
+
+        setReadWriteDocs(rw);
+        setOwnedDocs(ow);
       } catch (err) {
         console.error(err);
         alert('Unable to load documents. Please try again.');
@@ -64,10 +86,9 @@ export default function InlyneHomepage() {
     })();
   }, [token, maintenanceBypass, router]);
 
-  /* ─── fetch username + email for dropdown ─── */
+  // fetch user info for header
   useEffect(() => {
     if (!token) return;
-
     (async () => {
       try {
         const res = await fetch(
@@ -79,27 +100,28 @@ export default function InlyneHomepage() {
             },
           }
         );
-
         if (!res.ok) {
           console.error('User fetch error:', await res.text());
           return;
         }
-
         const { username, email, pfpUrl } = await res.json();
-        setUserMini({ userName: username ?? '', email: email ?? '' , avatarUrl: pfpUrl ?? '' });
+        setUserMini({ userName: username ?? '', email: email ?? '', avatarUrl: pfpUrl ?? '' });
       } catch (err) {
         console.error('Failed to fetch mini user data', err);
       }
     })();
   }, [token]);
 
-  /* ─── create doc ─── */
+  // create new document
   const handleCreate = async () => {
     if (MAINTENANCE_MODE && !maintenanceBypass) {
       alert('Site in maintenance mode. Enter correct credentials to create docs.');
       return;
     }
-    if (!token) { router.push('/login'); return; }
+    if (!token) {
+      router.push('/login');
+      return;
+    }
 
     try {
       const res = await fetch(`${API_BASE}/docs`, {
@@ -115,7 +137,7 @@ export default function InlyneHomepage() {
 
       const { url } = await res.json();
       const key = url.split('/').pop()!;
-      setDocs(prev => [key, ...prev.filter(k => k !== key)]);
+      setOwnedDocs(prev => [key, ...prev.filter(k => k !== key)]);
       router.push(`/${key}`);
     } catch (err: any) {
       console.error('Create failed:', err);
@@ -123,7 +145,7 @@ export default function InlyneHomepage() {
     }
   };
 
-  /* ─── maintenance screen ─── */
+  // show maintenance screen if needed
   if (MAINTENANCE_MODE && !maintenanceBypass) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -162,12 +184,18 @@ export default function InlyneHomepage() {
     return <div className="flex items-center justify-center h-screen">Loading documents...</div>;
   }
 
+  // combine owned docs first, then writable-only
+  const allDocs = [
+    ...ownedDocs,
+    ...readWriteDocs.filter(doc => !ownedDocs.includes(doc))
+  ];
+
   return (
     <div className="flex h-screen">
-      <Sidebar documents={docs} />
+      <Sidebar />
 
       <main className="flex-1 overflow-auto bg-brand-ivory">
-        {/* top bar */}
+        {/* Top Bar */}
         <header className="flex justify-end px-10 py-3 bg-white shadow-md relative">
           <div className="relative">
             <img
@@ -179,12 +207,10 @@ export default function InlyneHomepage() {
 
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2">
-                {/* user info block */}
                 <div className="px-4 pb-2 border-b">
                   <p className="font-semibold leading-tight truncate">{userMini.userName}</p>
                   <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
                 </div>
-
                 <button
                   onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
@@ -206,31 +232,45 @@ export default function InlyneHomepage() {
           </div>
         </header>
 
+        {/* Header & New Doc Button */}
         <div className="flex justify-between items-center px-6 py-4">
           <h1 className="text-2xl font-bold">Document Overview</h1>
           <button
             onClick={handleCreate}
-            className="cursor-pointer px-4 py-2 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 transition"
+            className="px-4 py-2 bg-brand-orange text-brand-ivory rounded-lg hover:bg-brand-orange/90 transition"
           >
             + New Document
           </button>
         </div>
 
+        {/* Document Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-6">
-          {docs.map(doc => (
-            <div key={doc} className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {allDocs.map(doc => (
+            <button
+              key={doc}
+              onClick={() => router.push(`/${doc}`)}
+              className="bg-white rounded-lg shadow-sm overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-orange transform hover:scale-105 hover:shadow-lg transition duration-200">
               <div className="h-40 flex items-center justify-center">
                 <img
                   src={`/previews/${doc}.png`}
                   alt={`${doc} preview`}
                   className="max-h-full"
-                  onError={e => { (e.currentTarget as HTMLImageElement).src = '/icons/document_placeholder.svg'; }}
+                  onError={e => {
+                    (e.currentTarget as HTMLImageElement).src = '/icons/document_placeholder.svg';
+                  }}
                 />
               </div>
               <div className="p-4 text-center">
-                <h3 className="text-lg truncate">{doc}</h3>
+                <h3 className="text-lg truncate inline-block">{doc}</h3>
+                {readWriteDocs.includes(doc) && !ownedDocs.includes(doc) && (
+                  <img
+                    src="/icons/share.svg"
+                    alt="Share icon"
+                    className="inline-block w-4 h-4 ml-2 align-middle"
+                  />
+                )}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </main>
