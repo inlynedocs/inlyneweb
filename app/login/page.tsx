@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,6 +17,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
 
+ /* // On mount, see if there's a valid token already
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'tokenLogin', token }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success') {
+          router.replace('/home');
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('pfpUrl');
+        }
+      } catch (err) {
+        console.error('Token validation error:', err);
+      }
+    })();
+  }, [router]);
+*/
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -26,6 +52,7 @@ export default function LoginPage() {
         body: JSON.stringify({ type: 'userLogin', email, password }),
       });
       const data = await res.json();
+
       if (res.ok && data.status === 'success') {
         localStorage.setItem('token', data.token);
         if (data.pfpUrl) localStorage.setItem('pfpUrl', data.pfpUrl);
