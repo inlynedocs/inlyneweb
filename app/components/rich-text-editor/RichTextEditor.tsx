@@ -140,7 +140,9 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       <div className="flex items-center bg-white shadow-sm rounded-t-lg">
         <MenuBar editor={editor} />
       </div>
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-auto bg-white p-6 rounded-b-lg prose">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
