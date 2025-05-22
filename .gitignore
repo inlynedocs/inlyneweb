@@ -10,8 +10,6 @@
 !.yarn/releases
 !.yarn/versions
 
-#app
-/app/vscodeauth
 
 # testing
 /coverage
