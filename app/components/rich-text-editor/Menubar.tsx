@@ -136,7 +136,7 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
   ];
 
   return (
-    <div className="border w-full bg-slate-50 space-x-2 z-50">
+    <div className="border w-full bg-slate-50 space-x-2 ">
       <div className="relative">
         <input
           ref={inputRef}

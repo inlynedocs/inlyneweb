@@ -30,7 +30,7 @@ export default function InlyneHomepage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="flex-grow bg-[#f4f4f7]">
+      <section className="flex-grow bg-[#f9f9f9]">
         <div className="container mx-auto px-6 py-20 text-center">
           <motion.h2
             className="text-4xl md:text-6xl font-extrabold leading-tight"
@@ -136,7 +136,7 @@ export default function InlyneHomepage() {
       </section>
 
       {/* Footer */}
-      <footer className="shadow-[0_-2px_4px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] bg-[#f4f4f7] pt-6 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <footer className="shadow-[0_-2px_4px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.1)] bg-[#f9f9f9] pt-6 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
         © {new Date().getFullYear()} Inlyne. All rights reserved.
       </footer>
     </div>

@@ -17,21 +17,18 @@ export default function DocEditorPage() {
   const docKey = Array.isArray(raw) ? raw[0] : raw;
   const router = useRouter();
 
- // If docKey is missing or wrong length, immediately redirect to /home
+  // Redirect if invalid key
   useEffect(() => {
     if (!docKey || docKey.length !== 8) {
       router.replace('/home');
     }
   }, [docKey, router]);
 
-  // Prevent any rendering while redirecting
   if (!docKey || docKey.length !== 8) {
     return null;
   }
 
-  // Sidebar docs list
   const [docs, setDocs] = useState<string[]>([]);
-  // Page + doc state
   const [loading, setLoading] = useState(true);
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
@@ -147,7 +144,7 @@ export default function DocEditorPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar/>
+      <Sidebar />
       <div className="flex-1 flex flex-col">
         <header className="flex items-center justify-between px-6 py-3 bg-white shadow-md relative">
           <h2 className="text-lg font-medium truncate">Editing: {docKey}</h2>
@@ -162,29 +159,33 @@ export default function DocEditorPage() {
                 </button>
               </div>
             )}
+            {/* updated dropdown */}
             <div className="relative">
               <img
-                src={`${API_BASE}/${userMini.avatarUrl}` || "/profileicon.svg"}
+                src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
                 alt="Profile Icon"
-                className="w-10 h-10 rounded-full object-cover cursor-pointer"
+                className="w-10 h-10 rounded-full object-cover cursor-pointer focus:outline-none hover:ring-2 hover:ring-gray-100 transition"
                 onClick={() => setMenuOpen(prev => !prev)}
               />
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg z-50">
-                  <div className="px-4 pb-2 border-b">
-                    <p className="font-semibold leading-tight truncate">{userMini.userName}</p>
+                <div className="absolute right-0 z-50 mt-2 w-48 bg-white border border-gray-200 shadow-md rounded-lg py-2">
+                  <div className="px-4 py-2">
+                    <p className="font-semibold text-lg truncate">{userMini.userName}</p>
                     <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
                   </div>
+                  <hr className="border-gray-200 my-1" />
                   <button
                     onClick={() => { setMenuOpen(false); router.push('/profile'); }}
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
                   >
+                    <img src="/profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" />
                     Profile
                   </button>
                   <button
                     onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.replace('/login'); }}
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
                   >
+                    <img src="/logout.svg" alt="Logout" className="w-4 h-4 mr-2" />
                     Logout
                   </button>
                 </div>

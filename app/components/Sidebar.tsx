@@ -45,10 +45,9 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`flex flex-col bg-[#f4f4f7] border-r border-gray-100
-                  shadow-[4px_0_6px_-2px_rgba(0,0,0,0.12)]
+      className={`flex flex-col bg-[#f9f9f9] border-r border-gray-200
                   transition-width duration-300 ease-in-out
-                  ${collapsed ? 'w-22' : 'w-64'}`}
+                  ${collapsed ? 'w-22' : 'w-60'}`}
     >
       {/* logo + collapse button */}
       <div className="flex items-center justify-between p-4">
