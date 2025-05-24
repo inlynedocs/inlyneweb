@@ -180,12 +180,12 @@ export default function InlyneHomepage() {
     <div className="flex h-screen">
       <Sidebar />
       <main className="flex-1 overflow-auto bg-white">
-        <header className="relative flex justify-between items-center px-6 py-3 bg-white shadow-md">
+        <header className="relative flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200">
           <h1 className="text-2xl font-bold">Documents</h1>
           <div className="flex items-center">
             <button
               onClick={handleCreate}
-              className="flex items-center px-4 py-2 bg-white text-brand-ivory rounded-lg hover:bg-gray-100 transition mr-4"
+              className="flex items-center px-4 py-2 bg-white text-brand-ivory rounded-xl hover:bg-gray-100 transition mr-4"
             >
               <img src="/newfileicon.svg" alt="New Document" className="w-5 h-5 mr-2" />
               New Document
@@ -194,7 +194,7 @@ export default function InlyneHomepage() {
               <img
                 src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
                 alt="Profile Icon"
-                className="w-8 h-8 rounded-full object-cover cursor-pointer focus:outline-none hover:outline-none hover:ring-2 hover:ring-gray-100 hover:ring-offset-0 transition"
+                className="w-9 h-9 rounded-full object-cover cursor-pointer focus:outline-none hover:outline-none hover:ring-4 hover:ring-gray-100 hover:ring-offset-0 transition"
                 onClick={() => setMenuOpen(!menuOpen)}
               />
               {menuOpen && (
