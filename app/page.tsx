@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/Header'
 import { Button } from './components/ui'
@@ -14,6 +14,14 @@ export default function InlyneHomepage() {
   const router = useRouter()
   const [dockey, setDockey] = useState('')
   const [showGuestInput, setShowGuestInput] = useState(false)
+
+  // if there's a token, assume you're logged in and jump to /home
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      router.replace('/home')
+    }
+  }, [router])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
