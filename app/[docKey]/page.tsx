@@ -139,11 +139,11 @@ export default function DocEditorPage() {
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center px-6 py-3 bg-white shadow-md space-x-4">
+        <header className="flex items-center px-6 py-3 border-b border-gray-200 bg-white shadow-md space-x-4">
           {sidebarCollapsed && (
             <>
               <button onClick={() => setSidebarCollapsed(false)}>
-                <Image src="/sidebar.svg" alt="Open sidebar" width={24} height={24} />
+                <Image src="sidebar.svg" alt="Open sidebar" width={24} height={24} />
               </button>
               <Link href="/home" passHref>
                 <img src="/inlyne_bracket_icon.png" alt="Logo" className="h-8 w-auto" />
@@ -151,14 +151,14 @@ export default function DocEditorPage() {
             </>
           )}
 
-          <h2 className="text-lg font-medium truncate">{docKey}</h2>
+          <h2 className="text-xl font-bold truncate">{docKey}</h2>
 
           {/* Fixed-width copy box */}
           <button
             onClick={copyLink}
             onMouseEnter={() => setHoverCopy(true)}
             onMouseLeave={() => setHoverCopy(false)}
-            className="w-20 flex items-center justify-center text-sm py-0.5 bg-gray-100 text-gray-600 rounded-lg transition-colors hover:bg-gray-200"
+            className="w-22 flex items-center justify-center text-sm py-0.5 bg-gray-100 text-gray-600 rounded-lg transition-colors hover:bg-gray-200"
           >
             {copied ? (
               <>
@@ -171,7 +171,10 @@ export default function DocEditorPage() {
                 <span>Copy</span>
               </>
             ) : (
-              <span>/ {docKey}</span>
+              <>
+              <span>{docKey}</span>
+              <Image src="/link.svg" alt="link" width={16} height={16} className="ml-0.5"/>
+              </>
             )}
           </button>
 

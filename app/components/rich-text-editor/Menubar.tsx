@@ -136,8 +136,8 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
   ];
 
   return (
-    <div className="border w-full bg-slate-50 space-x-2 ">
-      <div className="relative">
+    <div className="flex w-full items-centers justify-between bg-[#f9f9f9] space-x-2 px-20 py-1 shadow-sm ">
+      <div className="">
         <input
           ref={inputRef}
           list="font-sizes"
@@ -146,7 +146,7 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
           onBlur={applySize}
           onKeyDown={e => e.key === "Enter" && applySize()}
           placeholder="Font size"
-          className="w-20 px-2 py-1 border rounded text-sm"
+          className="w-25 px-3 h-full border border-gray-100 rounded text-sm"
         />
         <datalist id="font-sizes">
           {PRESET_SIZES.map(sz => <option key={sz} value={sz} />)}
@@ -158,7 +158,7 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
           key={index}
           pressed={option.preesed}
           onPressedChange={option.onClick}
-          className="hover:bg-brand-olive/20 transition"
+          className="hover:bg-gray-200 transition"
         >
           {option.icon}
         </Toggle>

@@ -50,7 +50,7 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       attributes: {
         class:
           // removed "prose prose-lg" so inline font-size works
-          'min-h-screen flex-1 overflow-auto p-6 ' +
+          'min-h-screen flex-1 overflow-auto p-6  w-80vw' +
           'bg-white rounded-b-lg focus:outline-none',
       },
     },

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 const API_BASE = 'https://api.inlyne.link';
 
@@ -13,7 +14,37 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+  const router = useRouter();
   const [documents, setDocuments] = useState<string[]>([]);
+
+  // create new doc
+  const handleCreate = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/docs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'create' }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { url } = await res.json();
+      const key = url.split('/').pop()!;
+      const newDocs = [key, ...documents.filter(d => d !== key)];
+      setDocuments(newDocs);
+      localStorage.setItem('inlyne-docs', JSON.stringify(newDocs));
+      router.push(`/${key}`);
+    } catch (err: any) {
+      console.error('Create failed:', err);
+      alert(`Error creating document: ${err.message}`);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,7 +78,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       .catch(loadFromLocal);
   }, []);
 
-  // hide entire sidebar when collapsed
   if (collapsed) return null;
 
   return (
@@ -74,8 +104,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       {/* menu */}
       <div className="flex flex-col flex-1 overflow-auto">
         <div className="px-2 mt-4">
-          <Link
-            href="/new"
+          <button
+            onClick={handleCreate}
             className="flex items-center p-2 rounded hover:bg-gray-100 transition"
           >
             <Image
@@ -86,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
               className="mr-2"
             />
             <span>New Document</span>
-          </Link>
+          </button>
         </div>
 
         <div className="px-4 mt-6 text-gray-400 uppercase text-xs tracking-wide">
@@ -95,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 
         <nav className="flex-1 px-2 mt-2">
           <ul className="space-y-1">
-            {documents.map(doc => (
+            {documents.map((doc) => (
               <li key={doc}>
                 <Link
                   href={`/${doc}`}
