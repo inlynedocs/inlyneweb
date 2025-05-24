@@ -2,13 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
 import Sidebar from '../components/Sidebar';
 import RichTextEditor from '../components/rich-text-editor/RichTextEditor';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
+
 interface UserMini {
   userName: string;
-  email:   string;
+  email: string;
   avatarUrl: string;
 }
 
@@ -17,18 +21,15 @@ export default function DocEditorPage() {
   const docKey = Array.isArray(raw) ? raw[0] : raw;
   const router = useRouter();
 
-  // Redirect if invalid key
+  // Redirect if invalid docKey
   useEffect(() => {
     if (!docKey || docKey.length !== 8) {
       router.replace('/home');
     }
   }, [docKey, router]);
+  if (!docKey || docKey.length !== 8) return null;
 
-  if (!docKey || docKey.length !== 8) {
-    return null;
-  }
-
-  const [docs, setDocs] = useState<string[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
@@ -36,28 +37,20 @@ export default function DocEditorPage() {
   const [userMini, setUserMini] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Copy button state
+  const [hoverCopy, setHoverCopy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  /* --------------------------- load sidebar docs -------------------------- */
-  useEffect(() => {
-    const stored = localStorage.getItem('inlyne-docs');
-    if (stored) setDocs(JSON.parse(stored));
-  }, []);
-
-  /* ─── fetch username + email for dropdown ─── */
+  // Fetch mini user data
   useEffect(() => {
     if (!token) return;
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/user?requestType=getUserData`,
-          {
-            headers: {
-              Accept        : 'application/json',
-              Authorization : `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`${API_BASE}/user?requestType=getUserData`, {
+          headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+        });
         if (!res.ok) throw new Error(await res.text());
         const { username, email, pfpUrl } = await res.json();
         setUserMini({ userName: username, email, avatarUrl: pfpUrl });
@@ -67,7 +60,7 @@ export default function DocEditorPage() {
     })();
   }, [token]);
 
-  /* -------------------------- fetch document meta ------------------------- */
+  // Fetch document meta & content
   useEffect(() => {
     setLoading(true);
     fetch(`${API_BASE}/${docKey}`, {
@@ -76,29 +69,25 @@ export default function DocEditorPage() {
       .then(res => res.json())
       .then(data => {
         if (data.status !== 'success') {
-          const message = data.details || data.message || 'Unknown error';
-          console.error('Load failed:', message);
-          alert(`Could not load document: ${message}`);
-          if (message.toLowerCase().includes('auth')) {
-            router.replace('/login');
-          } else {
-            router.replace('/home');
-          }
+          const msg = data.details || data.message || 'Unknown error';
+          if (/auth/i.test(msg)) router.replace('/login');
+          else router.replace('/home');
           return;
         }
         setAccessLevel(data.accessLevel);
         setIsPublic(data.doc.isPublic ?? false);
-        if (data.accessLevel === 'writer') setContent(data.doc.content || '<p></p>');
+        if (data.accessLevel === 'writer') {
+          setContent(data.doc.content || '<p></p>');
+        }
       })
       .catch(err => {
-        console.error('Fetch error:', err);
-        alert(`Could not load document: ${err.message || 'Fetch error'}`);
+        console.error('Fetch document failed', err);
         router.replace('/home');
       })
       .finally(() => setLoading(false));
   }, [docKey, token, router]);
 
-  /* --------------------------------- save --------------------------------- */
+  // Save handler
   const handleSave = useCallback(async () => {
     if (!token) return router.replace('/login');
     try {
@@ -108,17 +97,14 @@ export default function DocEditorPage() {
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
-      if (!res.ok || data.status !== 'success') {
-        throw new Error(data.message || `HTTP ${res.status}`);
-      }
-      alert('Saved!');
+      if (!res.ok || data.status !== 'success') throw new Error(data.message);
     } catch (err: any) {
-      console.error('Save failed:', err);
-      alert('Save failed: ' + (err.message || 'Unknown error'));
+      console.error('Save failed', err);
+      alert(`Save failed: ${err.message || 'Unknown error'}`);
     }
   }, [content, docKey, token, router]);
 
-  /* --------------------------- toggle public flag ------------------------- */
+  // Toggle public/private
   const handleToggle = useCallback(async () => {
     if (!token) return router.replace('/login');
     try {
@@ -130,41 +116,90 @@ export default function DocEditorPage() {
       const data = await res.json();
       if (data.status !== 'success') throw new Error(data.message);
       setIsPublic(data.isPublic);
-      alert(`Now ${data.isPublic ? 'Public' : 'Private'}`);
     } catch (err: any) {
-      console.error('Toggle failed:', err);
-      alert('Toggle failed: ' + (err.message || 'Unknown error'));
+      console.error('Toggle public failed', err);
+      alert(`Toggle failed: ${err.message || 'Unknown error'}`);
     }
   }, [isPublic, docKey, token, router]);
 
-  /* -------------------------------- render -------------------------------- */
+  // Copy link to clipboard
+  const copyLink = () => {
+    navigator.clipboard.writeText(`https://www.inlyne.link/${docKey}`);
+    setCopied(true);
+    setHoverCopy(false);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading…</div>;
   }
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between px-6 py-3 bg-white shadow-md relative">
-          <h2 className="text-lg font-medium truncate">Editing: {docKey}</h2>
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex items-center px-6 py-3 bg-white shadow-md space-x-4">
+          {sidebarCollapsed && (
+            <>
+              <button onClick={() => setSidebarCollapsed(false)}>
+                <Image src="/sidebar.svg" alt="Open sidebar" width={24} height={24} />
+              </button>
+              <Link href="/home" passHref>
+                <img src="/inlyne_bracket_icon.png" alt="Logo" className="h-8 w-auto" />
+              </Link>
+            </>
+          )}
+
+          <h2 className="text-lg font-medium truncate">{docKey}</h2>
+
+          {/* Fixed-width copy box */}
+          <button
+            onClick={copyLink}
+            onMouseEnter={() => setHoverCopy(true)}
+            onMouseLeave={() => setHoverCopy(false)}
+            className="w-20 flex items-center justify-center text-sm py-0.5 bg-gray-100 text-gray-600 rounded-lg transition-colors hover:bg-gray-200"
+          >
+            {copied ? (
+              <>
+                <Image src="/checkmark.svg" alt="Copied" width={16} height={16} className="mr-1" />
+                <span>Copied</span>
+              </>
+            ) : hoverCopy ? (
+              <>
+                <Image src="/copy.svg" alt="Copy" width={16} height={16} className="mr-1" />
+                <span>Copy</span>
+              </>
+            ) : (
+              <span>/ {docKey}</span>
+            )}
+          </button>
+
+          <div className="flex-1" />
+
           <div className="flex items-center space-x-4">
             {accessLevel === 'writer' && (
               <div className="flex space-x-3">
-                <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
                   Save
                 </button>
-                <button onClick={handleToggle} className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition">
+                <button
+                  onClick={handleToggle}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+                >
                   {isPublic ? 'Make Private' : 'Make Public'}
                 </button>
               </div>
             )}
-            {/* updated dropdown */}
+
             <div className="relative">
               <img
                 src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
-                alt="Profile Icon"
-                className="w-10 h-10 rounded-full object-cover cursor-pointer focus:outline-none hover:ring-2 hover:ring-gray-100 transition"
+                alt="Profile"
+                className="w-10 h-10 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-gray-100 transition"
                 onClick={() => setMenuOpen(prev => !prev)}
               />
               {menuOpen && (
@@ -178,21 +213,20 @@ export default function DocEditorPage() {
                     onClick={() => { setMenuOpen(false); router.push('/profile'); }}
                     className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
                   >
-                    <img src="/profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" />
-                    Profile
+                    <img src="/profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" /> Profile
                   </button>
                   <button
                     onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.replace('/login'); }}
                     className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
                   >
-                    <img src="/logout.svg" alt="Logout" className="w-4 h-4 mr-2" />
-                    Logout
+                    <img src="/logout.svg" alt="Logout" className="w-4 h-4 mr-2" /> Logout
                   </button>
                 </div>
               )}
             </div>
           </div>
         </header>
+
         <main className="flex-1 bg-gray-50 overflow-auto relative">
           <RichTextEditor content={content} onChange={setContent} docKey={docKey} />
           {accessLevel === 'writer' && (
