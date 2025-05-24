@@ -1,8 +1,7 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '../components/Sidebar';
+import Link from 'next/link';
 
 const MAINTENANCE_MODE  = false;
 const BYPASS_USERNAME   = 'adminbrar';
@@ -19,21 +18,24 @@ export default function InlyneHomepage() {
   const router = useRouter();
   const token  = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  const [readWriteDocs,    setReadWriteDocs   ] = useState<string[]>([]);
-  const [ownedDocs,        setOwnedDocs       ] = useState<string[]>([]);
-  const [loading,          setLoading         ] = useState(true);
+  const [readWriteDocs,     setReadWriteDocs    ] = useState<string[]>([]);
+  const [ownedDocs,         setOwnedDocs        ] = useState<string[]>([]);
+  const [loading,           setLoading          ] = useState(true);
   const [maintenanceBypass, setMaintenanceBypass] = useState(false);
-  const [bypassUser,       setBypassUser      ] = useState('');
-  const [bypassPw,         setBypassPw        ] = useState('');
-  const [menuOpen,         setMenuOpen        ] = useState(false);
-  const [userMini,         setUserMini        ] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
+  const [bypassUser,        setBypassUser       ] = useState('');
+  const [bypassPw,          setBypassPw         ] = useState('');
+  const [menuOpen,          setMenuOpen         ] = useState(false);
+  const [userMini,          setUserMini         ] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
+  const [searchQuery,       setSearchQuery      ] = useState('');
 
+  // bypass logic
   useEffect(() => {
     if (MAINTENANCE_MODE && bypassUser === BYPASS_USERNAME && bypassPw === BYPASS_PASSWORD) {
       setMaintenanceBypass(true);
     }
   }, [bypassUser, bypassPw]);
 
+  // fetch docs
   useEffect(() => {
     if (MAINTENANCE_MODE && !maintenanceBypass) {
       setLoading(false);
@@ -67,11 +69,12 @@ export default function InlyneHomepage() {
           }),
         ]);
 
-        if (!rrRes.ok) throw new Error(`Failed to fetch writable docs: ${rrRes.status}`);
-        if (!ownerRes.ok) throw new Error(`Failed to fetch owned docs: ${ownerRes.status}`);
+        if (!rrRes.ok)    throw new Error(`Failed to fetch writable docs: ${rrRes.status}`);
+        if (!ownerRes.ok) throw new Error(`Failed to fetch owned docs:    ${ownerRes.status}`);
 
         const { docs: rw } = await rrRes.json();
         const { docs: ow } = await ownerRes.json();
+
         setReadWriteDocs(rw);
         setOwnedDocs(ow);
       } catch (err) {
@@ -83,6 +86,7 @@ export default function InlyneHomepage() {
     })();
   }, [token, maintenanceBypass, router]);
 
+  // fetch user info
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -105,6 +109,7 @@ export default function InlyneHomepage() {
     })();
   }, [token]);
 
+  // create new doc
   const handleCreate = async () => {
     if (MAINTENANCE_MODE && !maintenanceBypass) {
       alert('Site in maintenance mode. Enter correct credentials to create docs.');
@@ -175,72 +180,112 @@ export default function InlyneHomepage() {
   }
 
   const allDocs = [...ownedDocs, ...readWriteDocs.filter(doc => !ownedDocs.includes(doc))];
+  const filteredDocs = allDocs.filter(doc =>
+    doc.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto bg-white">
-        <header className="relative flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200">
-          <h1 className="text-2xl font-bold">Documents</h1>
-          <div className="flex items-center">
-            <button
-              onClick={handleCreate}
-              className="flex items-center px-4 py-2 bg-white text-brand-ivory rounded-xl hover:bg-gray-100 transition mr-4"
-            >
-              <img src="/newfileicon.svg" alt="New Document" className="w-5 h-5 mr-2" />
-              New Document
-            </button>
-            <div className="relative">
-              <img
-                src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
-                alt="Profile Icon"
-                className="w-9 h-9 rounded-full object-cover cursor-pointer focus:outline-none hover:outline-none hover:ring-4 hover:ring-gray-100 hover:ring-offset-0 transition"
-                onClick={() => setMenuOpen(!menuOpen)}
-              />
-              {menuOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-48 bg-white border border-gray-200 shadow-md rounded-lg py-2">
-                  <div className="px-4 py-2">
-                    <p className="font-semibold text-lg truncate">{userMini.userName}</p>
-                    <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
-                  </div>
-                  <hr className="border-gray-200 my-1" />
-                  <button
-                    onClick={() => { setMenuOpen(false); router.push('/profile'); }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
-                  >
-                    <img src="profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" />
-                    Profile
-                  </button>
-                  <button
-                    onClick={() => { setMenuOpen(false); localStorage.removeItem('token'); router.push('/login'); }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
-                  >
-                    <img src="logout.svg" alt="Logout" className="w-4 h-4 mr-2" />
-                    Logout
-                  </button>
+    <div className="flex flex-col h-screen">
+      {/* HEADER */}
+      <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
+        <Link href="/home" passHref className="flex items-center">
+          <img src="inlyne_logo.png" alt="Inlyne Logo" className="h-8" />
+        </Link>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleCreate}
+            className="flex items-center px-4 py-2 bg-white text-brand-ivory rounded-xl hover:bg-gray-100 transition"
+          >
+            <img src="/newfileicon.svg" alt="New Document" className="w-5 h-5 mr-2" />
+            New Document
+          </button>
+          <div className="relative">
+            <img
+              src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
+              alt="Profile Icon"
+              className="w-9 h-9 rounded-full object-cover cursor-pointer hover:ring-4 hover:ring-gray-100 transition"
+              onClick={() => setMenuOpen(!menuOpen)}
+            />
+            {menuOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-48 bg-white border border-gray-200 shadow-md rounded-lg py-2">
+                <div className="px-4 py-2">
+                  <p className="font-semibold text-lg truncate">{userMini.userName}</p>
+                  <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
                 </div>
-              )}
+                <hr className="border-gray-200 my-1" />
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    router.push('/profile');
+                  }}
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                >
+                  <img src="profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" />
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                  }}
+                  className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                >
+                  <img src="logout.svg" alt="Logout" className="w-4 h-4 mr-2" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* MAIN */}
+      <main className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-6xl px-6 py-5">
+          {/* Controls */}
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <h1 className="text-2xl font-bold">Documents</h1>
+            {/* search input */}
+            <div className="relative w-full sm:w-auto">
+              <img
+                src="/search.svg"
+                alt="Search"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+              />
+              <input
+                type="text"
+                placeholder="Search documents"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
+              />
             </div>
           </div>
-        </header>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-6">
-          {allDocs.map(doc => (
-            <button
-              key={doc}
-              onClick={() => router.push(`/${doc}`)}
-              className="bg-white rounded-lg shadow-sm overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-orange transform hover:scale-105 hover:shadow-lg transition duration-200"
-            >
-              <div className="h-40 flex items-center justify-center shadow-xs">
-                <img src="file.svg" alt={`${doc} preview`} className="w-20 h-20 object-cover" />
-              </div>
-              <div className="p-4 text-center">
-                <h3 className="text-lg truncate inline-block">{doc}</h3>
-                {readWriteDocs.includes(doc) && !ownedDocs.includes(doc) && (
-                  <img src="/icons/share.svg" alt="Share icon" className="inline-block w-4 h-4 ml-2 align-middle" />
-                )}
-              </div>
-            </button>
-          ))}
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredDocs.map(doc => (
+              <button
+                key={doc}
+                onClick={() => router.push(`/${doc}`)}
+                className="bg-white rounded-lg shadow-sm overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-200 transform hover:scale-105 hover:shadow-lg transition duration-200"
+              >
+                <div className="h-40 flex items-center justify-center shadow-xs">
+                  <img src="file.svg" alt={`${doc} preview`} className="w-20 h-20 object-cover" />
+                </div>
+                <div className="p-4 text-center">
+                  <h3 className="text-lg truncate inline-block">{doc}</h3>
+                  {readWriteDocs.includes(doc) && !ownedDocs.includes(doc) && (
+                    <img src="/icons/share.svg" alt="Share" className="inline-block w-4 h-4 ml-2" />
+                  )}
+                </div>
+              </button>
+            ))}
+            {filteredDocs.length === 0 && (
+              <p className="col-span-full py-6 text-center text-gray-500">No documents found.</p>
+            )}
+          </div>
         </div>
       </main>
     </div>
