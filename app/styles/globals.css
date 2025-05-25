@@ -24,3 +24,31 @@ body {
   /* use your updated custom property */
   font-family: var(--font-sans);
 }
+
+.tiptap-editor h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin: 1.5rem 0;
+}
+
+.tiptap-editor h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin: 1.25rem 0;
+}
+
+.tiptap-editor h3 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 1rem 0;
+}
+
+.tiptap-editor .fs-8px   { font-size:  8px !important; }
+.tiptap-editor .fs-10px  { font-size: 10px !important; }
+.tiptap-editor .fs-12px  { font-size: 12px !important; }
+.tiptap-editor .fs-14px  { font-size: 14px !important; }
+.tiptap-editor .fs-16px  { font-size: 16px !important; }
+.tiptap-editor .fs-18px  { font-size: 18px !important; }
+.tiptap-editor .fs-24px  { font-size: 24px !important; }
+.tiptap-editor .fs-32px  { font-size: 32px !important; }
+.tiptap-editor .fs-48px  { font-size: 48px !important; }

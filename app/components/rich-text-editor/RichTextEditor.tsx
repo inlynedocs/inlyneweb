@@ -2,20 +2,36 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit     from '@tiptap/starter-kit';
-import TextAlign      from '@tiptap/extension-text-align';
-import Highlight      from '@tiptap/extension-highlight';
-import Image          from '@tiptap/extension-image';
-import Placeholder    from '@tiptap/extension-placeholder';
-import MenuBar        from './Menubar';
-import TextStyle      from '@tiptap/extension-text-style';
-import Color          from '@tiptap/extension-color';
+import StarterKit                    from '@tiptap/starter-kit';
+import TextStyleBase                 from '@tiptap/extension-text-style';
+import Color                         from '@tiptap/extension-color';
+import TextAlign                     from '@tiptap/extension-text-align';
+import Highlight                     from '@tiptap/extension-highlight';
+import Image                         from '@tiptap/extension-image';
+import Placeholder                   from '@tiptap/extension-placeholder';
+import MenuBar                       from './Menubar';
 
-import SockJS               from 'sockjs-client';
-import { Client, IMessage } from '@stomp/stompjs';
+import SockJS                        from 'sockjs-client';
+import { Client, IMessage }         from '@stomp/stompjs';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 const WS_URL   = `${API_BASE}/ws`;
+
+// 3) Extend TextStyle to honor `class` attributes
+const TextStyle = TextStyleBase.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute('class') ?? undefined,
+        renderHTML: attributes => {
+          return attributes.class ? { class: attributes.class } : {};
+        },
+      },
+    };
+  },
+});
 
 const getToken = () =>
   typeof window !== 'undefined' ? localStorage.getItem('token') ?? undefined : undefined;
@@ -36,10 +52,11 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
     autofocus        : 'end',
     extensions: [
       StarterKit.configure({
-        bulletList : { HTMLAttributes: { class: 'list-disc ml-5'   }},
-        orderedList: { HTMLAttributes: { class: 'list-decimal ml-5'}},
+        history: false,
+        bulletList:   { HTMLAttributes: { class: 'list-disc ml-5'    } },
+        orderedList:  { HTMLAttributes: { class: 'list-decimal ml-5' } },
       }),
-      TextStyle,   // <-- enable inline fontSize & color
+      TextStyle,   // ← use extended TextStyle here
       Color,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Highlight,
@@ -49,12 +66,12 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
     editorProps: {
       attributes: {
         class:
-          // removed "prose prose-lg" so inline font-size works
-          'min-h-screen flex-1 overflow-auto p-6  w-80vw' +
+          'min-h-screen flex-1 overflow-auto p-6 w-80vw ' +
           'bg-white rounded-b-lg focus:outline-none',
       },
     },
     onUpdate: ({ editor }) => {
+      console.log('Current font-size class:', editor.getAttributes('textStyle').class);
       const html = editor.getHTML();
       onChange(html);
 
@@ -67,7 +84,6 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
         });
       }
 
-      // auto-save via REST to ensure persistence for new tabs
       const token = getToken();
       if (token) {
         fetch(
@@ -96,7 +112,6 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       connectHeaders   : getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
       debug            : msg => console.log('[STOMP]', msg),
       onConnect() {
-        // subscribe before loading so no frames are missed
         client.subscribe(`/topic/docs/${docKey}`, (frame: IMessage) => {
           const { content: remote } = JSON.parse(frame.body);
           if (!remote || remote === editor.getHTML()) return;
@@ -106,7 +121,6 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
           suppressRef.current = false;
         });
 
-        // initial load after subscribing
         fetch(
           `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,
           { headers: { Accept: 'application/json' } }
@@ -140,7 +154,7 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       <div className="flex items-center bg-white shadow-sm rounded-t-lg">
         <MenuBar editor={editor} />
       </div>
-      <div className="flex-1 overflow-auto bg-white p-6 rounded-b-lg prose">
+      <div className="tiptap-editor flex-1 overflow-auto bg-white p-6 rounded-b-lg prose">
         <EditorContent editor={editor} />
       </div>
     </div>

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   AlignCenter,
   AlignLeft,
@@ -32,21 +32,51 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
 
   // Keep the input in sync when cursor moves
   const syncSize = () => {
-    const cur = editor.getAttributes("textStyle").fontSize as string | undefined;
-    setInputSize(cur || "");
+    const cur = editor.getAttributes("textStyle").class as string | undefined;
+    // class will be like "fs-16px"
+    setInputSize(cur?.replace(/^fs-/, "") ?? "");
   };
 
-  // Called on blur or Enter: apply the value
+  // Called on blur or Enter: apply the value (auto-append px if only digits)
   const applySize = () => {
-    const size = inputSize.trim();
-    if (size) {
-      editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
+    let size = inputSize.trim();
+    if (!size) return;
+
+    // normalize bare numbers → "24" becomes "24px"
+    if (/^\d+(\.\d+)?$/.test(size)) {
+      size = `${size}px`;
     }
+
+    // If there's already a textStyle mark at the cursor, update its class,
+    // otherwise set a new mark (which also becomes the "stored mark" for new typing).
+    if (editor.isActive('textStyle')) {
+      editor
+        .chain()
+        .focus()
+        .updateAttributes('textStyle', { class: `fs-${size}` })
+        .run();
+    } else {
+      editor
+        .chain()
+        .focus()
+        .setMark('textStyle', { class: `fs-${size}` })
+        .run();
+    }
+
+    // keep our input in sync
     syncSize();
   };
 
-  editor.on("selectionUpdate", syncSize);
-  editor.on("transaction", syncSize);
+  // Attach and clean up listeners once
+  useEffect(() => {
+    editor.on("selectionUpdate", syncSize);
+    editor.on("transaction", syncSize);
+    syncSize();
+    return () => {
+      editor.off("selectionUpdate", syncSize);
+      editor.off("transaction", syncSize);
+    };
+  }, [editor]);
 
   const Options = [
     {
@@ -125,18 +155,10 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
       },
       preesed: false,
     },
-    {
-      icon: <Type className="size-4" />,
-      onClick: () => {
-        const size = prompt("Enter font size (e.g. 16px or 1.2em)", "16px");
-        if (size) editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
-      },
-      preesed: false,
-    },
   ];
 
   return (
-    <div className="flex w-full items-centers justify-between bg-[#f9f9f9] space-x-2 px-20 py-1 shadow-sm ">
+    <div className="flex w-full items-center justify-between bg-[#f9f9f9] space-x-2 px-20 py-1 shadow-sm ">
       <div className="">
         <input
           ref={inputRef}
@@ -146,7 +168,7 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
           onBlur={applySize}
           onKeyDown={e => e.key === "Enter" && applySize()}
           placeholder="Font size"
-          className="w-25 px-3 h-full border border-gray-100 rounded text-sm"
+          className="w-20 px-3 h-full border border-gray-100 rounded text-sm"
         />
         <datalist id="font-sizes">
           {PRESET_SIZES.map(sz => <option key={sz} value={sz} />)}
