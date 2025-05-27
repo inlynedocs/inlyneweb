@@ -154,7 +154,7 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       <div className="flex items-center bg-white shadow-sm rounded-t-lg">
         <MenuBar editor={editor} />
       </div>
-      <div className="tiptap-editor flex-1 overflow-auto bg-white p-6 rounded-b-lg prose">
+      <div className="tiptap-editor flex-1 overflow-auto bg-white p-6 rounded-b-lg">
         <EditorContent editor={editor} />
       </div>
     </div>

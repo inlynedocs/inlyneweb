@@ -24,6 +24,7 @@ const PRESET_SIZES = ["8px","10px","12px","14px","16px","18px","24px","32px","48
 
 export default function MenuBar({ editor }: { editor: Editor | null }) {
   const [inputSize, setInputSize] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
   if (!editor) {
@@ -32,9 +33,8 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
 
   // Keep the input in sync when cursor moves
   const syncSize = () => {
-    const cur = editor.getAttributes("textStyle").class as string | undefined;
-    // class will be like "fs-16px"
-    setInputSize(cur?.replace(/^fs-/, "") ?? "");
+    const cls = editor.getAttributes("textStyle").class as string | undefined;
+    setInputSize(cls?.replace(/^fs-/, "") ?? "");
   };
 
   // Called on blur or Enter: apply the value (auto-append px if only digits)
@@ -42,28 +42,15 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
     let size = inputSize.trim();
     if (!size) return;
 
-    // normalize bare numbers → "24" becomes "24px"
     if (/^\d+(\.\d+)?$/.test(size)) {
       size = `${size}px`;
     }
+    editor
+      .chain()
+      .focus()
+      .setMark('textStyle', { class: `fs-${size}` })
+      .run();
 
-    // If there's already a textStyle mark at the cursor, update its class,
-    // otherwise set a new mark (which also becomes the "stored mark" for new typing).
-    if (editor.isActive('textStyle')) {
-      editor
-        .chain()
-        .focus()
-        .updateAttributes('textStyle', { class: `fs-${size}` })
-        .run();
-    } else {
-      editor
-        .chain()
-        .focus()
-        .setMark('textStyle', { class: `fs-${size}` })
-        .run();
-    }
-
-    // keep our input in sync
     syncSize();
   };
 
@@ -155,24 +142,43 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
       },
       preesed: false,
     },
+    {
+      icon: <Type className="size-4" />,
+      onClick: applySize,
+      preesed: false,
+    },
   ];
 
   return (
     <div className="flex w-full items-center justify-between bg-[#f9f9f9] space-x-2 px-20 py-1 shadow-sm ">
-      <div className="">
+      <div className="relative">
         <input
           ref={inputRef}
-          list="font-sizes"
           value={inputSize}
           onChange={e => setInputSize(e.target.value)}
-          onBlur={applySize}
+          onFocus={() => setDropdownOpen(true)}
+          onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
           onKeyDown={e => e.key === "Enter" && applySize()}
           placeholder="Font size"
           className="w-20 px-3 h-full border border-gray-100 rounded text-sm"
         />
-        <datalist id="font-sizes">
-          {PRESET_SIZES.map(sz => <option key={sz} value={sz} />)}
-        </datalist>
+        {dropdownOpen && (
+          <ul className="absolute top-full mt-1 w-20 max-h-40 overflow-auto bg-white border border-gray-200 rounded shadow-lg z-50">
+            {PRESET_SIZES.map(sz => (
+              <li
+                key={sz}
+                onMouseDown={e => {
+                  e.preventDefault();
+                  setInputSize(sz);
+                  applySize();
+                }}
+                className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
+              >
+                {sz}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       
       {Options.map((option, index) => (
