@@ -176,7 +176,7 @@ export default function InlyneHomepage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading documents...</div>;
+    return <div className="flex items-center justify-center h-screen"></div>;
   }
 
   const allDocs = [...ownedDocs, ...readWriteDocs.filter(doc => !ownedDocs.includes(doc))];
@@ -277,7 +277,7 @@ export default function InlyneHomepage() {
                 <div className="p-4 text-center">
                   <h3 className="text-lg truncate inline-block">{doc}</h3>
                   {readWriteDocs.includes(doc) && !ownedDocs.includes(doc) && (
-                    <img src="/icons/share.svg" alt="Share" className="inline-block w-4 h-4 ml-2" />
+                    <img src="share.svg" alt="Share" className="inline-block w-4 h-4 ml-2" />
                   )}
                 </div>
               </button>
