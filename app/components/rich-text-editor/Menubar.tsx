@@ -26,6 +26,14 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
   const [inputSize, setInputSize] = useState<string>("");
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [colorOpen, setColorOpen] = useState<boolean>(false);
+  const [colorValue, setColorValue] = useState<string>("#000000");
+  const colorRef = useRef<HTMLInputElement>(null);
+
+  const [imageOpen, setImageOpen] = useState<boolean>(false);
+  const [imageValue, setImageValue] = useState<string>("");
+  const imageRef = useRef<HTMLInputElement>(null);
   
   if (!editor) {
     return null;
@@ -37,31 +45,45 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
     setInputSize(cls?.replace(/^fs-/, "") ?? "");
   };
 
-  // Called on blur or Enter: apply the value (auto-append px if only digits)
+  // Apply font size
   const applySize = () => {
     let size = inputSize.trim();
     if (!size) return;
-
     if (/^\d+(\.\d+)?$/.test(size)) {
       size = `${size}px`;
     }
     editor
       .chain()
       .focus()
-      .setMark('textStyle', { class: `fs-${size}` })
+      .setMark("textStyle", { class: `fs-${size}` })
       .run();
-
     syncSize();
+  };
+
+  // Apply color
+  const applyColor = () => {
+    editor
+      .chain()
+      .focus()
+      .setMark("textStyle", { color: colorValue })
+      .run();
+    setColorOpen(false);
+  };
+
+  // Apply image
+  const applyImage = () => {
+    if (imageValue.trim()) {
+      editor.chain().focus().setImage({ src: imageValue.trim() }).run();
+    }
+    setImageOpen(false);
   };
 
   // Attach and clean up listeners once
   useEffect(() => {
     editor.on("selectionUpdate", syncSize);
-    editor.on("transaction", syncSize);
     syncSize();
     return () => {
       editor.off("selectionUpdate", syncSize);
-      editor.off("transaction", syncSize);
     };
   }, [editor]);
 
@@ -122,35 +144,15 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
       preesed: editor.isActive("orderedList"),
     },
     {
-      icon: <Droplet className="size-4" />,
-      onClick: () => {
-        const color = prompt("Enter text color (hex or CSS name)", "#000000");
-        if (color) editor.chain().focus().setMark("textStyle", { color }).run();
-      },
-      preesed: false,
-    },
-    {
       icon: <Highlighter className="size-4" />,
       onClick: () => editor.chain().focus().toggleHighlight().run(),
       preesed: editor.isActive("highlight"),
-    },
-    {
-      icon: <ImgIcon className="size-4" />,
-      onClick: () => {
-        const url = prompt("Enter image URL");
-        if (url) editor.chain().focus().setImage({ src: url }).run();
-      },
-      preesed: false,
-    },
-    {
-      icon: <Type className="size-4" />,
-      onClick: applySize,
-      preesed: false,
     },
   ];
 
   return (
     <div className="flex w-full items-center justify-between bg-[#f9f9f9] space-x-2 px-20 py-1 shadow-sm ">
+      {/* Font-Size Dropdown */}
       <div className="relative">
         <input
           ref={inputRef}
@@ -180,7 +182,8 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
           </ul>
         )}
       </div>
-      
+
+      {/* Formatting Toggles */}
       {Options.map((option, index) => (
         <Toggle
           key={index}
@@ -191,6 +194,50 @@ export default function MenuBar({ editor }: { editor: Editor | null }) {
           {option.icon}
         </Toggle>
       ))}
+
+      {/* Color Picker */}
+      <div className="relative">
+        <Toggle
+          pressed={colorOpen}
+          onPressedChange={() => setColorOpen(o => !o)}
+          className="hover:bg-gray-200 transition"
+        >
+          <Droplet className="size-4" />
+        </Toggle>
+        {colorOpen && (
+          <input
+            ref={colorRef}
+            type="color"
+            value={colorValue}
+            onChange={e => setColorValue(e.target.value)}
+            onBlur={applyColor}
+            className="absolute top-full mt-1 w-8 h-8 p-0 border-none"
+          />
+        )}
+      </div>
+
+      {/* Image URL */}
+      <div className="relative">
+        <Toggle
+          pressed={imageOpen}
+          onPressedChange={() => setImageOpen(o => !o)}
+          className="hover:bg-gray-200 transition"
+        >
+          <ImgIcon className="size-4" />
+        </Toggle>
+        {imageOpen && (
+          <input
+            ref={imageRef}
+            type="text"
+            value={imageValue}
+            onChange={e => setImageValue(e.target.value)}
+            onBlur={applyImage}
+            onKeyDown={e => e.key === "Enter" && applyImage()}
+            placeholder="Image URL"
+            className="absolute top-full mt-1 w-40 px-2 py-1 border rounded bg-white text-sm"
+          />
+        )}
+      </div>
     </div>
   );
 }

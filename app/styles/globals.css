@@ -52,3 +52,11 @@ body {
 .tiptap-editor .fs-24px  { font-size: 24px !important; }
 .tiptap-editor .fs-32px  { font-size: 32px !important; }
 .tiptap-editor .fs-48px  { font-size: 48px !important; }
+
+.tiptap-editor img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  resize: both;
+  overflow: auto;
+}

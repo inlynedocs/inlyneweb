@@ -100,6 +100,25 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
     },
   });
 
+  // handle drop of image files
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!editor) return;
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = reader.result as string;
+        editor.chain().focus().setImage({ src }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   useEffect(() => {
     if (!editor) return;
     stompRef.current?.deactivate();
@@ -154,7 +173,11 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
       <div className="flex items-center bg-white shadow-sm rounded-t-lg">
         <MenuBar editor={editor} />
       </div>
-      <div className="tiptap-editor flex-1 overflow-auto bg-white p-6 rounded-b-lg">
+      <div
+        className="tiptap-editor flex-1 overflow-auto bg-white p-6 rounded-b-lg"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>
