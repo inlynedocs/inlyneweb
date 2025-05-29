@@ -141,7 +141,7 @@ export default function ProfilePage() {
 
   /* ───────────────── UI ───────────────── */
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading profile…</div>;
+    return <div className="flex items-center justify-center h-screen"></div>;
   }
 
   return (

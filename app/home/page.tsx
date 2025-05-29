@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ProfileMenu from '../components/ProfileMenu';
+
 
 const MAINTENANCE_MODE  = false;
 const BYPASS_USERNAME   = 'adminbrar';
@@ -9,17 +11,22 @@ const BYPASS_PASSWORD   = 'jivajBRAR0123@';
 const API_BASE          = 'https://api.inlyne.link';
 
 interface UserMini {
-  userName : string;
-  email    : string;
-  avatarUrl: string;
+  userName: string;
+  email:    string;
+  avatarUrl:string;
+}
+
+interface Doc {
+  linkKey:  string;
+  docTitle: string;
 }
 
 export default function InlyneHomepage() {
   const router = useRouter();
   const token  = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  const [readWriteDocs,     setReadWriteDocs    ] = useState<string[]>([]);
-  const [ownedDocs,         setOwnedDocs        ] = useState<string[]>([]);
+  const [readWriteDocs,     setReadWriteDocs    ] = useState<Doc[]>([]);
+  const [ownedDocs,         setOwnedDocs        ] = useState<Doc[]>([]);
   const [loading,           setLoading          ] = useState(true);
   const [maintenanceBypass, setMaintenanceBypass] = useState(false);
   const [bypassUser,        setBypassUser       ] = useState('');
@@ -30,7 +37,9 @@ export default function InlyneHomepage() {
 
   // bypass logic
   useEffect(() => {
-    if (MAINTENANCE_MODE && bypassUser === BYPASS_USERNAME && bypassPw === BYPASS_PASSWORD) {
+    if (MAINTENANCE_MODE &&
+        bypassUser === BYPASS_USERNAME &&
+        bypassPw   === BYPASS_PASSWORD) {
       setMaintenanceBypass(true);
     }
   }, [bypassUser, bypassPw]);
@@ -53,8 +62,8 @@ export default function InlyneHomepage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${token}`,
+              Accept:         'application/json',
+              Authorization:  `Bearer ${token}`,
             },
             body: JSON.stringify({ type: 'getDocsUserCanReadWrite' }),
           }),
@@ -62,8 +71,8 @@ export default function InlyneHomepage() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${token}`,
+              Accept:         'application/json',
+              Authorization:  `Bearer ${token}`,
             },
             body: JSON.stringify({ type: 'getDocsUserIsOwner' }),
           }),
@@ -72,8 +81,8 @@ export default function InlyneHomepage() {
         if (!rrRes.ok)    throw new Error(`Failed to fetch writable docs: ${rrRes.status}`);
         if (!ownerRes.ok) throw new Error(`Failed to fetch owned docs:    ${ownerRes.status}`);
 
-        const { docs: rw } = await rrRes.json();
-        const { docs: ow } = await ownerRes.json();
+        const { docs: rw }: { docs: Doc[] } = await rrRes.json();
+        const { docs: ow }: { docs: Doc[] } = await ownerRes.json();
 
         setReadWriteDocs(rw);
         setOwnedDocs(ow);
@@ -93,7 +102,7 @@ export default function InlyneHomepage() {
       try {
         const res = await fetch(`${API_BASE}/user?requestType=getUserData`, {
           headers: {
-            Accept: 'application/json',
+            Accept:        'application/json',
             Authorization: `Bearer ${token}`,
           },
         });
@@ -125,15 +134,16 @@ export default function InlyneHomepage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
+          Accept:         'application/json',
+          Authorization:  `Bearer ${token}`,
         },
         body: JSON.stringify({ type: 'create' }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { url } = await res.json();
       const key = url.split('/').pop()!;
-      setOwnedDocs(prev => [key, ...prev.filter(k => k !== key)]);
+      // assume new docs use key as title until refreshed:
+      setOwnedDocs(prev => [{ linkKey: key, docTitle: key }, ...prev.filter(d => d.linkKey !== key)]);
       router.push(`/${key}`);
     } catch (err: any) {
       console.error('Create failed:', err);
@@ -141,6 +151,7 @@ export default function InlyneHomepage() {
     }
   };
 
+  // show bypass form if in maintenance
   if (MAINTENANCE_MODE && !maintenanceBypass) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -175,14 +186,21 @@ export default function InlyneHomepage() {
     );
   }
 
+  // loading spinner
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading documents...</div>;
+    return <div className="flex items-center justify-center h-screen" />;
   }
 
-  const allDocs = [...ownedDocs, ...readWriteDocs.filter(doc => !ownedDocs.includes(doc))];
-  const filteredDocs = allDocs.filter(doc =>
-    doc.toLowerCase().includes(searchQuery.trim().toLowerCase())
-  );
+  // merge & de-dupe by linkKey
+  const allDocs = [
+    ...ownedDocs,
+    ...readWriteDocs.filter(rw => !ownedDocs.some(ow => ow.linkKey === rw.linkKey)),
+  ];
+
+  // simple case-sensitive title filter
+  const filteredDocs = searchQuery
+    ? allDocs.filter(d => d.docTitle.includes(searchQuery.trim()))
+    : allDocs;
 
   return (
     <div className="flex flex-col h-screen">
@@ -199,44 +217,11 @@ export default function InlyneHomepage() {
             <img src="/newfileicon.svg" alt="New Document" className="w-5 h-5 mr-2" />
             New Document
           </button>
-          <div className="relative">
-            <img
-              src={`${API_BASE}/${userMini.avatarUrl}` || '/profileicon.svg'}
-              alt="Profile Icon"
-              className="w-9 h-9 rounded-full object-cover cursor-pointer hover:ring-4 hover:ring-gray-100 transition"
-              onClick={() => setMenuOpen(!menuOpen)}
-            />
-            {menuOpen && (
-              <div className="absolute right-0 z-50 mt-2 w-48 bg-white border border-gray-200 shadow-md rounded-lg py-2">
-                <div className="px-4 py-2">
-                  <p className="font-semibold text-lg truncate">{userMini.userName}</p>
-                  <p className="text-xs text-gray-500 truncate">{userMini.email}</p>
-                </div>
-                <hr className="border-gray-200 my-1" />
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    router.push('/profile');
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
-                >
-                  <img src="profileicon.svg" alt="Profile" className="w-4 h-4 mr-2" />
-                  Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    localStorage.removeItem('token');
-                    router.push('/login');
-                  }}
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-800 hover:bg-gray-100"
-                >
-                  <img src="logout.svg" alt="Logout" className="w-4 h-4 mr-2" />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+          <ProfileMenu
+                avatarSrc={`${API_BASE}${userMini.avatarUrl}`}
+                userName={userMini.userName}
+                email={userMini.email}
+          />
         </div>
       </header>
 
@@ -246,7 +231,6 @@ export default function InlyneHomepage() {
           {/* Controls */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <h1 className="text-2xl font-bold">Documents</h1>
-            {/* search input */}
             <div className="relative w-full sm:w-auto">
               <img
                 src="/search.svg"
@@ -267,17 +251,18 @@ export default function InlyneHomepage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredDocs.map(doc => (
               <button
-                key={doc}
-                onClick={() => router.push(`/${doc}`)}
+                key={doc.linkKey}
+                onClick={() => router.push(`/${doc.linkKey}`)}
                 className="bg-white rounded-lg shadow-sm overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-200 transform hover:scale-105 hover:shadow-lg transition duration-200"
               >
                 <div className="h-40 flex items-center justify-center shadow-xs">
-                  <img src="file.svg" alt={`${doc} preview`} className="w-20 h-20 object-cover" />
+                  <img src="file.svg" alt={`${doc.docTitle} preview`} className="w-20 h-20 object-cover" />
                 </div>
                 <div className="p-4 text-center">
-                  <h3 className="text-lg truncate inline-block">{doc}</h3>
-                  {readWriteDocs.includes(doc) && !ownedDocs.includes(doc) && (
-                    <img src="/icons/share.svg" alt="Share" className="inline-block w-4 h-4 ml-2" />
+                  <h3 className="text-lg truncate inline-block">{doc.docTitle}</h3>
+                  {readWriteDocs.some(rw => rw.linkKey === doc.linkKey) &&
+                   !ownedDocs.some(ow => ow.linkKey === doc.linkKey) && (
+                    <img src="share.svg" alt="Share" className="inline-block w-4 h-4 ml-2" />
                   )}
                 </div>
               </button>
