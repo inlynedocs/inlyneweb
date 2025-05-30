@@ -11,7 +11,7 @@ interface User {
   avatarUrl: string;
 }
 
-const API_BASE = 'https://api.inlyne.link';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
 export default function ProfilePage() {
   const router = useRouter();

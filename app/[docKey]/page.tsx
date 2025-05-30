@@ -9,7 +9,7 @@ import Sidebar from '../components/Sidebar';
 import RichTextEditor from '../components/rich-text-editor/RichTextEditor';
 import ProfileMenu from '../components/ProfileMenu';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://api.inlyne.link';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
 interface UserMini {
   userName: string;

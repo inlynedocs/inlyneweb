@@ -7,7 +7,7 @@ import hazard from '../public/hazard.svg';
 import Image from 'next/image';
 
 // Base URL for all API calls
-const API_BASE = 'https://api.inlyne.link';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
 // Shared input styles (edit here to update all inputs)
 const inputClass =
