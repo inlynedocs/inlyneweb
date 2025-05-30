@@ -43,7 +43,7 @@ export default function DocEditorPage() {
   const [shareOpen, setShareOpen] = useState(false);
 
   // Add-permission form
-  const [newPermissionUserId, setNewPermissionUserId] = useState('');
+  const [newPermissionUserEmail, setNewPermissionUserEmail] = useState('');
   const [newPermissionRole, setNewPermissionRole] = useState<'reader'|'writer'|'admin'>('reader');
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -69,7 +69,7 @@ export default function DocEditorPage() {
   useEffect(() => {
     setLoading(true);
     fetch(`${API_BASE}/${docKey}`, {
-      headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { Accept: 'application/json', ... (token ? { Authorization: `Bearer ${token}` } : {}) },
     })
       .then(res => res.json())
       .then(data => {
@@ -81,7 +81,7 @@ export default function DocEditorPage() {
         }
         const doc = data.doc;
         setAccessLevel(data.accessLevel);
-        setIsPublic(doc.isPublic ?? false);
+        setIsPublic(doc.isPublic ?? true);
         setDocTitle(doc.title || '');
 
         setOwner(
@@ -172,17 +172,17 @@ export default function DocEditorPage() {
         body: JSON.stringify({
           type: 'updateDocPermissions',
           docId: docKey,
-          updates: [{ userId: newPermissionUserId, role: newPermissionRole, mode: 'add' }],
+          updates: [{ userEmail: newPermissionUserEmail, role: newPermissionRole, mode: 'add' }],
         }),
       });
       const data = await res.json();
       if (data.status !== 'success') throw new Error(data.message || 'Permission update failed');
-      setNewPermissionUserId('');
+      setNewPermissionUserEmail('');
     } catch (err: any) {
       console.error(err);
       alert(`Permission update failed: ${err.message}`);
     }
-  }, [newPermissionUserId, newPermissionRole, docKey, token, router]);
+  }, [newPermissionUserEmail, newPermissionRole, docKey, token, router]);
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
 
@@ -255,14 +255,6 @@ export default function DocEditorPage() {
               /*readOnly={!canEdit}*/
               docKey={docKey}
             />
-            {canEdit && (
-              <button
-                onClick={handleSave}
-                className="absolute bottom-4 right-4 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow"
-              >
-                Save Document
-              </button>
-            )}
           </main>
         </div>
       </div>
@@ -321,9 +313,9 @@ export default function DocEditorPage() {
                   <div className="flex space-x-2">
                     <input
                       type="text"
-                      placeholder="User UUID"
-                      value={newPermissionUserId}
-                      onChange={e => setNewPermissionUserId(e.target.value)}
+                      placeholder="User Email"
+                      value={newPermissionUserEmail}
+                      onChange={e => setNewPermissionUserEmail(e.target.value)}
                       className="flex-1 border p-2 rounded"
                     />
                     <select

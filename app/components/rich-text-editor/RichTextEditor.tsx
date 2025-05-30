@@ -120,11 +120,11 @@ export default function RichTextEditor({ content, onChange, docKey }: Props) {
           onChange(remote);
           suppressRef.current = false;
         });
-
+        const token = getToken();
         fetch(
-          `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,
-          { headers: { Accept: 'application/json' } }
-        )
+          `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,{
+            headers: { Accept: 'application/json', ... (token ? { Authorization: `Bearer ${token}` } : {}) },
+          })
           .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
