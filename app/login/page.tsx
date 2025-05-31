@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // Base URL for all API calls
-const API_BASE = 'https://api.inlyne.link';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
 // Shared input styles (edit here to update all inputs)
 const inputClass = 

@@ -8,7 +8,7 @@ import ProfileMenu from '../components/ProfileMenu';
 const MAINTENANCE_MODE  = false;
 const BYPASS_USERNAME   = 'adminbrar';
 const BYPASS_PASSWORD   = 'jivajBRAR0123@';
-const API_BASE          = 'https://api.inlyne.link';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
 interface UserMini {
   userName: string;
