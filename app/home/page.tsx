@@ -31,7 +31,6 @@ export default function InlyneHomepage() {
   const [maintenanceBypass, setMaintenanceBypass] = useState(false);
   const [bypassUser,        setBypassUser       ] = useState('');
   const [bypassPw,          setBypassPw         ] = useState('');
-  const [menuOpen,          setMenuOpen         ] = useState(false);
   const [userMini,          setUserMini         ] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
   const [searchQuery,       setSearchQuery      ] = useState('');
 
