@@ -11,6 +11,8 @@ import ProfileMenu from '../components/ProfileMenu';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.inlyne.link';
 
+type RoleType = 'reader' | 'writer' | 'admin';
+
 interface UserMini {
   userName: string;
   email: string;
@@ -29,7 +31,7 @@ export default function DocEditorPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [content, setContent] = useState('<p></p>');
 
-  // ───────→ **NEW STATE**: store the “official” document title from the backend
+  // docTitle
   const [docTitle, setDocTitle] = useState<string>('');
 
   const [userMini, setUserMini] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
@@ -47,7 +49,7 @@ export default function DocEditorPage() {
 
   // Add‐permission form
   const [newPermissionUserEmail, setNewPermissionUserEmail] = useState('');
-  const [newPermissionRole, setNewPermissionRole] = useState<'reader'|'writer'|'admin'>('reader');
+  const [newPermissionRole, setNewPermissionRole] = useState<RoleType>('reader');
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -61,7 +63,10 @@ export default function DocEditorPage() {
   useEffect(() => {
     if (!token) return;
     fetch(`${API_BASE}/user?requestType=getUserData`, {
-      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
     })
       .then(res => (res.ok ? res.json() : Promise.reject('User fetch error')))
       .then(({ username, email, pfpUrl }) =>
@@ -70,17 +75,25 @@ export default function DocEditorPage() {
       .catch(console.error);
   }, [token]);
 
-  // Fetch document metadata, content, and permission lists
+  // ←── UPDATED: Fetch document metadata (including title) via “getDoc”
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/${docKey}`, {
-      headers: {
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    })
-      .then(res => res.json())
+
+    fetch(
+      `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    )
+      .then(res => {
+        if (!res.ok) return Promise.reject(`Status ${res.status}`);
+        return res.json();
+      })
       .then(data => {
+        // Expect: { status: 'success', doc: { title, content, isPublic, owner, admins, writers, readers }, accessLevel }
         if (data.status !== 'success') {
           const msg = data.details || data.message || '';
           if (/auth/i.test(msg)) router.replace('/login');
@@ -90,15 +103,19 @@ export default function DocEditorPage() {
 
         const doc = data.doc;
 
-        // ───────→ **PULL IN doc.title HERE,** so we know what to display
-        setDocTitle(doc.title || '');
+        // ←── Pull in doc.doCtitle so it shows immediately
+        setDocTitle(doc.docTitle || '');
 
         setAccessLevel(data.accessLevel);
         setIsPublic(doc.isPublic ?? true);
 
         setOwner(
           doc.owner
-            ? { userName: doc.owner.username, email: doc.owner.email, avatarUrl: doc.owner.pfpUrl }
+            ? {
+                userName: doc.owner.username,
+                email: doc.owner.email,
+                avatarUrl: doc.owner.pfpUrl,
+              }
             : null
         );
         setAdminsList(
@@ -137,36 +154,43 @@ export default function DocEditorPage() {
   // Permissions logic
   const isAdminOrOwner = Boolean(
     (owner && userMini.email === owner.email) ||
-    adminsList.some(a => a.email === userMini.email)
+      adminsList.some(a => a.email === userMini.email)
   );
   // Anyone can edit if doc is public; otherwise only writers
   const canEdit = isPublic || accessLevel === 'writer';
 
-  // Handler to save the content (unchanged)
+  // Handler to save content
   const handleSave = useCallback(async () => {
     if (!token) return router.replace('/login');
     try {
       const res = await fetch(`${API_BASE}/docs/${docKey}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
-      if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Save failed');
+      if (!res.ok || data.status !== 'success')
+        throw new Error(data.message || 'Save failed');
     } catch (err: any) {
       console.error(err);
       alert(`Save failed: ${err.message}`);
     }
   }, [content, docKey, token, router]);
 
-  // Handler to toggle public/private (unchanged)
+  // Handler to toggle public/private
   const handleToggle = useCallback(async () => {
     if (!token) return router.replace('/login');
     const payload = { type: 'setPublic', docId: docKey, public: !isPublic, docTitle };
     try {
       const res = await fetch(`${API_BASE}/docs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -178,25 +202,17 @@ export default function DocEditorPage() {
     }
   }, [isPublic, docKey, docTitle, token, router]);
 
-  // ───────→ **NEW: Handler to change document title.**
-  //              Matches exactly your backend: payload.get("docId") & payload.get("docTitle")
+  // Handler to change document title
   const handleTitleClick = useCallback(async () => {
     if (!token) {
       router.replace('/login');
       return;
     }
 
-    // Prompt for a new title. Pre‐fill with the existing title if it exists.
     const newName = window.prompt('Enter a new document name:', docTitle || '');
-    if (!newName) {
-      // User pressed “Cancel” or left it blank
-      return;
-    }
+    if (!newName) return;
     const trimmed = newName.trim();
-    if (trimmed === '' || trimmed === docTitle) {
-      // Either the user didn't change anything, or it’s empty
-      return;
-    }
+    if (trimmed === '' || trimmed === docTitle) return;
 
     try {
       const res = await fetch(`${API_BASE}/docs`, {
@@ -208,7 +224,7 @@ export default function DocEditorPage() {
         body: JSON.stringify({
           type: 'setDocTitle',
           docId: docKey,
-          docTitle: trimmed,        // ← this key must be “docTitle” (not “newTitle”), per your backend.
+          docTitle: trimmed,
         }),
       });
 
@@ -217,7 +233,6 @@ export default function DocEditorPage() {
         throw new Error(data.message || 'Title update failed');
       }
 
-      // Update local state so UI reflects the new title immediately
       setDocTitle(trimmed);
       alert('Document name updated successfully.');
     } catch (err: any) {
@@ -239,34 +254,132 @@ export default function DocEditorPage() {
     alert('Link copied to clipboard!');
   };
 
+  // Handler to add a permission
   const handleAddPermission = useCallback(async () => {
     if (!token) return router.replace('/login');
     try {
       const res = await fetch(`${API_BASE}/docs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'updateDocPermissions',
           docId: docKey,
-          updates: [
-            { userEmail: newPermissionUserEmail, role: newPermissionRole, mode: 'add' },
-          ],
+          updates: [{ userEmail: newPermissionUserEmail, role: newPermissionRole, mode: 'add' }],
         }),
       });
       const data = await res.json();
-      if (data.status !== 'success') throw new Error(data.message || 'Permission update failed');
+      if (data.status !== 'success')
+        throw new Error(data.message || 'Permission update failed');
+
       setNewPermissionUserEmail('');
+      // Optionally, you could append the new user into the correct list here,
+      // but in many cases you prefer to simply refetch.
     } catch (err: any) {
       console.error(err);
       alert(`Permission update failed: ${err.message}`);
     }
   }, [newPermissionUserEmail, newPermissionRole, docKey, token, router]);
 
+  // Handler to remove a permission
+  const handleRemovePermission = useCallback(
+    async (userEmail: string, role: RoleType) => {
+      if (!token) return router.replace('/login');
+      try {
+        const res = await fetch(`${API_BASE}/docs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: 'updateDocPermissions',
+            docId: docKey,
+            updates: [{ userEmail, role, mode: 'remove' }],
+          }),
+        });
+        const data = await res.json();
+        if (data.status !== 'success')
+          throw new Error(data.message || 'Permission removal failed');
+
+        // Update local lists
+        if (role === 'admin') {
+          setAdminsList(prev => prev.filter(u => u.email !== userEmail));
+        } else if (role === 'writer') {
+          setWritersList(prev => prev.filter(u => u.email !== userEmail));
+        } else {
+          setReadersList(prev => prev.filter(u => u.email !== userEmail));
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert(`Failed to remove permission: ${err.message}`);
+      }
+    },
+    [docKey, token, router]
+  );
+
+  // ←── New: Handler to change a user's role
+  const handleChangeRole = useCallback(
+    async (user: UserMini, oldRole: RoleType, newRole: RoleType) => {
+      if (oldRole === newRole) return;
+      if (!token) return router.replace('/login');
+
+      try {
+        // Send both remove-oldRole and add-newRole in one request
+        const res = await fetch(`${API_BASE}/docs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: 'updateDocPermissions',
+            docId: docKey,
+            updates: [
+              { userEmail: user.email, role: oldRole, mode: 'remove' },
+              { userEmail: user.email, role: newRole, mode: 'add' },
+            ],
+          }),
+        });
+
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Role change failed');
+
+        // Locally update: remove from oldRole array, add to newRole array
+        if (oldRole === 'admin') {
+          setAdminsList(prev => prev.filter(u => u.email !== user.email));
+        } else if (oldRole === 'writer') {
+          setWritersList(prev => prev.filter(u => u.email !== user.email));
+        } else {
+          setReadersList(prev => prev.filter(u => u.email !== user.email));
+        }
+
+        if (newRole === 'admin') {
+          setAdminsList(prev => [...prev, user]);
+        } else if (newRole === 'writer') {
+          setWritersList(prev => [...prev, user]);
+        } else {
+          setReadersList(prev => [...prev, user]);
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert(`Failed to change role: ${err.message}`);
+      }
+    },
+    [docKey, token, router]
+  );
+
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
 
   return (
     <>
-      <div className={`flex h-screen overflow-hidden ${shareOpen ? 'filter blur-sm pointer-events-none' : ''}`}>
+      <div
+        className={`flex h-screen overflow-hidden ${
+          shareOpen ? 'filter blur-sm pointer-events-none' : ''
+        }`}
+      >
         <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="flex items-center px-6 py-3 border-b border-gray-200 bg-white shadow space-x-4">
@@ -297,7 +410,13 @@ export default function DocEditorPage() {
             >
               {copied ? (
                 <>
-                  <Image src="/checkmark.svg" alt="Copied" width={16} height={16} className="mr-1" />
+                  <Image
+                    src="/checkmark.svg"
+                    alt="Copied"
+                    width={16}
+                    height={16}
+                    className="mr-1"
+                  />
                   Copied
                 </>
               ) : hoverCopy ? (
@@ -338,7 +457,6 @@ export default function DocEditorPage() {
             <RichTextEditor
               content={content}
               onChange={canEdit ? setContent : () => {}}
-              /*readOnly={!canEdit}*/
               docKey={docKey}
             />
           </main>
@@ -396,6 +514,7 @@ export default function DocEditorPage() {
                   >
                     <option>Owner</option>
                   </select>
+                  {/* No remove button for owner */}
                 </li>
               )}
 
@@ -405,14 +524,23 @@ export default function DocEditorPage() {
                     <p className="font-medium text-sm">{u.userName}</p>
                     <p className="text-xs text-gray-500">{u.email}</p>
                   </div>
-                  <select
-                    defaultValue="admin"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
-                  >
-                    <option value="reader">Can view</option>
-                    <option value="writer">Can edit</option>
-                    <option value="admin">Is admin</option>
-                  </select>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      defaultValue="admin"
+                      onChange={e => handleChangeRole(u, 'admin', e.target.value as RoleType)}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+                    >
+                      <option value="reader">Can view</option>
+                      <option value="writer">Can edit</option>
+                      <option value="admin">Is admin</option>
+                    </select>
+                    <button
+                      onClick={() => handleRemovePermission(u.email, 'admin')}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Image src="/cross.svg" alt="Remove" width={16} height={16} />
+                    </button>
+                  </div>
                 </li>
               ))}
 
@@ -422,14 +550,23 @@ export default function DocEditorPage() {
                     <p className="font-medium text-sm">{u.userName}</p>
                     <p className="text-xs text-gray-500">{u.email}</p>
                   </div>
-                  <select
-                    defaultValue="writer"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
-                  >
-                    <option value="reader">Can view</option>
-                    <option value="writer">Can edit</option>
-                    <option value="admin">Is admin</option>
-                  </select>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      defaultValue="writer"
+                      onChange={e => handleChangeRole(u, 'writer', e.target.value as RoleType)}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+                    >
+                      <option value="reader">Can view</option>
+                      <option value="writer">Can edit</option>
+                      <option value="admin">Is admin</option>
+                    </select>
+                    <button
+                      onClick={() => handleRemovePermission(u.email, 'writer')}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Image src="/cross.svg" alt="Remove" width={16} height={16} />
+                    </button>
+                  </div>
                 </li>
               ))}
 
@@ -439,14 +576,23 @@ export default function DocEditorPage() {
                     <p className="font-medium text-sm">{u.userName}</p>
                     <p className="text-xs text-gray-500">{u.email}</p>
                   </div>
-                  <select
-                    defaultValue="reader"
-                    className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
-                  >
-                    <option value="reader">Can view</option>
-                    <option value="writer">Can edit</option>
-                    <option value="admin">Is admin</option>
-                  </select>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      defaultValue="reader"
+                      onChange={e => handleChangeRole(u, 'reader', e.target.value as RoleType)}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+                    >
+                      <option value="reader">Can view</option>
+                      <option value="writer">Can edit</option>
+                      <option value="admin">Is admin</option>
+                    </select>
+                    <button
+                      onClick={() => handleRemovePermission(u.email, 'reader')}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Image src="/cross.svg" alt="Remove" width={16} height={16} />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -465,7 +611,7 @@ export default function DocEditorPage() {
                   />
                   <select
                     value={newPermissionRole}
-                    onChange={e => setNewPermissionRole(e.target.value as any)}
+                    onChange={e => setNewPermissionRole(e.target.value as RoleType)}
                     className="w-32 border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none"
                   >
                     <option value="reader">Reader</option>
@@ -475,7 +621,7 @@ export default function DocEditorPage() {
                 </div>
                 <button
                   onClick={handleAddPermission}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                  className="w-full px-4 py-2 bg-[#EC6D26] text-white rounded-lg hover:bg-[#CD5512] transition text-sm"
                 >
                   Add
                 </button>
@@ -484,20 +630,16 @@ export default function DocEditorPage() {
 
             {/* Footer */}
             <div className="flex justify-between items-center">
-              {/* Toggle Public/Private */}
               <button
                 onClick={handleToggle}
                 disabled={!isAdminOrOwner}
-                className={`px-3 py-1 border rounded text-sm transition ${
-                  isAdminOrOwner
-                    ? 'hover:bg-gray-100'
-                    : 'opacity-50 cursor-not-allowed'
+                className={`px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition ${
+                  isAdminOrOwner ? 'hover:bg-gray-100' : 'opacity-50 cursor-not-allowed'
                 }`}
               >
                 {isPublic ? 'Make Private' : 'Make Public'}
               </button>
 
-              {/* Close */}
               <button
                 onClick={() => setShareOpen(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition"
