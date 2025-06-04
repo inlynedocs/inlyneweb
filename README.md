@@ -1,45 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inlyne Web Editor
 
-## Getting Started
+Inlyne is a collaborative, rich-text editing platform powered by [Tiptap](https://tiptap.dev) and designed for real-time editing, image support, and a clean writing experience.
 
-First, run the development server:
+This is the **web client** portion of the project.
 
+### Clone the repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone git@github.com:inlynedocs/inlyneweb.git
+cd inlyneweb
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Run the development Server
+```bash
+cd inlyneweb
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
-## RERUN DEPLOYMENT #3x
-
-
-
-
-### INSTALL DEPENDAN
-[`npm install @tiptap/extension-code-block-lowlight lowlight react-medium-image-zoom @tiptap/extension-color @tiptap/extension-heading @tiptap/extension-horizontal-rule @tiptap/extension-image @tiptap/extension-link @tiptap/extension-placeholder @tiptap/extension-text-style @tiptap/extension-typography @tiptap/pm @tiptap/react @tiptap/starter-kit @tiptap/extension-underline`]
+This should start the development server, and you can access the application at `http://localhost:3000`.
