@@ -30,9 +30,8 @@ export default function DocEditorPage() {
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
   const [content, setContent] = useState('<p></p>');
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null); // null = not yet checked
 
-  // docTitle
+  // ←── d
   const [docTitle, setDocTitle] = useState<string>('');
 
   const [userMini, setUserMini] = useState<UserMini>({ userName: '', email: '', avatarUrl: '' });
@@ -60,42 +59,6 @@ export default function DocEditorPage() {
   }, [docKey, router]);
   if (!docKey || docKey.length !== 8) return null;
 
-  // STEP 1: Verify token on mount
-  useEffect(() => {
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/user?requestType=verifyToken`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          }
-        });
-
-        if (!res.ok) {
-          // Treat non-200 as invalid
-          router.push('/login');
-          return;
-        }
-
-        const data: { tokenStatus: 'valid' | 'invalid' } = await res.json();
-        if (data.tokenStatus === 'valid') {
-          setTokenValid(true);
-        } else {
-          router.push('/login');
-        }
-      } catch (err) {
-        console.error('Token verification failed:', err);
-        router.push('/login');
-      }
-    })();
-  }, [token, router]);
-
   // Fetch current user info
   useEffect(() => {
     if (!token) return;
@@ -112,86 +75,79 @@ export default function DocEditorPage() {
       .catch(console.error);
   }, [token]);
 
-  // ←── UPDATED: Fetch document metadata (including title) via “getDoc”
-  useEffect(() => {
+  // Function to fetch document metadata (including title, permissions, etc.)
+  const fetchDoc = useCallback(async () => {
     setLoading(true);
-
-    fetch(
-      `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,
-      {
-        headers: {
-          Accept: 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+    try {
+      const res = await fetch(
+        `${API_BASE}/docs?requestType=getDoc&key=${encodeURIComponent(docKey)}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      if (data.status !== 'success') {
+        const msg = data.details || data.message || '';
+        if (/auth/i.test(msg)) router.replace('/login');
+        else router.replace('/home');
+        return;
       }
-    )
-      .then(res => {
-        if (!res.ok) return Promise.reject(`Status ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        // Expect: { status: 'success', doc: { title, content, isPublic, owner, admins, writers, readers }, accessLevel }
-        if (data.status !== 'success') {
-          const msg = data.details || data.message || '';
-          if (/auth/i.test(msg)) router.replace('/login');
-          else router.replace('/home');
-          return;
-        }
 
-        const doc = data.doc;
+      const doc = data.doc;
+      setDocTitle(doc.title || '');
+      setAccessLevel(data.accessLevel);
+      setIsPublic(doc.isPublic ?? true);
 
-        // ←── Pull in doc.doCtitle so it shows immediately
-        setDocTitle(doc.docTitle || '');
+      setOwner(
+        doc.owner
+          ? { userName: doc.owner.username, email: doc.owner.email, avatarUrl: doc.owner.pfpUrl }
+          : null
+      );
+      setAdminsList(
+        (doc.admins || []).map((u: any) => ({
+          userName: u.username,
+          email: u.email,
+          avatarUrl: u.pfpUrl,
+        }))
+      );
+      setWritersList(
+        (doc.writers || []).map((u: any) => ({
+          userName: u.username,
+          email: u.email,
+          avatarUrl: u.pfpUrl,
+        }))
+      );
+      setReadersList(
+        (doc.readers || []).map((u: any) => ({
+          userName: u.username,
+          email: u.email,
+          avatarUrl: u.pfpUrl,
+        }))
+      );
 
-        setAccessLevel(data.accessLevel);
-        setIsPublic(doc.isPublic ?? true);
-
-        setOwner(
-          doc.owner
-            ? {
-                userName: doc.owner.username,
-                email: doc.owner.email,
-                avatarUrl: doc.owner.pfpUrl,
-              }
-            : null
-        );
-        setAdminsList(
-          (doc.admins || []).map((u: any) => ({
-            userName: u.username,
-            email: u.email,
-            avatarUrl: u.pfpUrl,
-          }))
-        );
-        setWritersList(
-          (doc.writers || []).map((u: any) => ({
-            userName: u.username,
-            email: u.email,
-            avatarUrl: u.pfpUrl,
-          }))
-        );
-        setReadersList(
-          (doc.readers || []).map((u: any) => ({
-            userName: u.username,
-            email: u.email,
-            avatarUrl: u.pfpUrl,
-          }))
-        );
-
-        if (data.accessLevel === 'writer') {
-          setContent(doc.content || '<p></p>');
-        }
-      })
-      .catch(err => {
-        console.error('Fetch document failed', err);
-        router.replace('/home');
-      })
-      .finally(() => setLoading(false));
+      if (data.accessLevel === 'writer') {
+        setContent(doc.content || '<p></p>');
+      }
+    } catch (err) {
+      console.error('Fetch document failed', err);
+      router.replace('/home');
+    } finally {
+      setLoading(false);
+    }
   }, [docKey, token, router]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchDoc();
+  }, [fetchDoc]);
 
   // Permissions logic
   const isAdminOrOwner = Boolean(
-    (owner && userMini.email === owner.email) ||
-      adminsList.some(a => a.email === userMini.email)
+    (owner && userMini.email === owner.email) || adminsList.some(a => a.email === userMini.email)
   );
   // Anyone can edit if doc is public; otherwise only writers
   const canEdit = isPublic || accessLevel === 'writer';
@@ -209,19 +165,18 @@ export default function DocEditorPage() {
         body: JSON.stringify({ content }),
       });
       const data = await res.json();
-      if (!res.ok || data.status !== 'success')
-        throw new Error(data.message || 'Save failed');
+      if (!res.ok || data.status !== 'success') throw new Error(data.message || 'Save failed');
     } catch (err: any) {
       console.error(err);
       alert(`Save failed: ${err.message}`);
     }
   }, [content, docKey, token, router]);
 
-  // Handler to toggle public/private
+  // Handler to toggle public/private, then refetch the doc to restore owner access
   const handleToggle = useCallback(async () => {
     if (!token) return router.replace('/login');
-    const payload = { type: 'setPublic', docId: docKey, public: !isPublic, docTitle };
     try {
+      const payload = { type: 'setPublic', docId: docKey, public: !isPublic, docTitle };
       const res = await fetch(`${API_BASE}/docs`, {
         method: 'POST',
         headers: {
@@ -232,12 +187,16 @@ export default function DocEditorPage() {
       });
       const data = await res.json();
       if (data.status !== 'success') throw new Error(data.message || 'Toggle failed');
+
       setIsPublic(data.isPublic);
+
+      // After toggling, immediately refetch document metadata to restore permissions correctly
+      await fetchDoc();
     } catch (err: any) {
       console.error(err);
       alert(`Toggle failed: ${err.message}`);
     }
-  }, [isPublic, docKey, docTitle, token, router]);
+  }, [isPublic, docKey, docTitle, token, router, fetchDoc]);
 
   // Handler to change document title
   const handleTitleClick = useCallback(async () => {
@@ -245,7 +204,6 @@ export default function DocEditorPage() {
       router.replace('/login');
       return;
     }
-
     const newName = window.prompt('Enter a new document name:', docTitle || '');
     if (!newName) return;
     const trimmed = newName.trim();
@@ -264,12 +222,10 @@ export default function DocEditorPage() {
           docTitle: trimmed,
         }),
       });
-
       const data = await res.json();
       if (!res.ok || data.status !== 'success') {
         throw new Error(data.message || 'Title update failed');
       }
-
       setDocTitle(trimmed);
       alert('Document name updated successfully.');
     } catch (err: any) {
@@ -308,17 +264,15 @@ export default function DocEditorPage() {
         }),
       });
       const data = await res.json();
-      if (data.status !== 'success')
-        throw new Error(data.message || 'Permission update failed');
-
+      if (data.status !== 'success') throw new Error(data.message || 'Permission update failed');
       setNewPermissionUserEmail('');
-      // Optionally, you could append the new user into the correct list here,
-      // but in many cases you prefer to simply refetch.
+      // Refetch to update lists
+      await fetchDoc();
     } catch (err: any) {
       console.error(err);
       alert(`Permission update failed: ${err.message}`);
     }
-  }, [newPermissionUserEmail, newPermissionRole, docKey, token, router]);
+  }, [newPermissionUserEmail, newPermissionRole, docKey, token, fetchDoc, router]);
 
   // Handler to remove a permission
   const handleRemovePermission = useCallback(
@@ -338,23 +292,15 @@ export default function DocEditorPage() {
           }),
         });
         const data = await res.json();
-        if (data.status !== 'success')
-          throw new Error(data.message || 'Permission removal failed');
-
-        // Update local lists
-        if (role === 'admin') {
-          setAdminsList(prev => prev.filter(u => u.email !== userEmail));
-        } else if (role === 'writer') {
-          setWritersList(prev => prev.filter(u => u.email !== userEmail));
-        } else {
-          setReadersList(prev => prev.filter(u => u.email !== userEmail));
-        }
+        if (data.status !== 'success') throw new Error(data.message || 'Permission removal failed');
+        // Refetch to update lists
+        await fetchDoc();
       } catch (err: any) {
         console.error(err);
         alert(`Failed to remove permission: ${err.message}`);
       }
     },
-    [docKey, token, router]
+    [docKey, token, fetchDoc, router]
   );
 
   // ←── New: Handler to change a user's role
@@ -364,7 +310,6 @@ export default function DocEditorPage() {
       if (!token) return router.replace('/login');
 
       try {
-        // Send both remove-oldRole and add-newRole in one request
         const res = await fetch(`${API_BASE}/docs`, {
           method: 'POST',
           headers: {
@@ -383,29 +328,14 @@ export default function DocEditorPage() {
 
         const data = await res.json();
         if (data.status !== 'success') throw new Error(data.message || 'Role change failed');
-
-        // Locally update: remove from oldRole array, add to newRole array
-        if (oldRole === 'admin') {
-          setAdminsList(prev => prev.filter(u => u.email !== user.email));
-        } else if (oldRole === 'writer') {
-          setWritersList(prev => prev.filter(u => u.email !== user.email));
-        } else {
-          setReadersList(prev => prev.filter(u => u.email !== user.email));
-        }
-
-        if (newRole === 'admin') {
-          setAdminsList(prev => [...prev, user]);
-        } else if (newRole === 'writer') {
-          setWritersList(prev => [...prev, user]);
-        } else {
-          setReadersList(prev => [...prev, user]);
-        }
+        // Refetch to update lists
+        await fetchDoc();
       } catch (err: any) {
         console.error(err);
         alert(`Failed to change role: ${err.message}`);
       }
     },
-    [docKey, token, router]
+    [docKey, token, fetchDoc, router]
   );
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading…</div>;
@@ -447,13 +377,7 @@ export default function DocEditorPage() {
             >
               {copied ? (
                 <>
-                  <Image
-                    src="/checkmark.svg"
-                    alt="Copied"
-                    width={16}
-                    height={16}
-                    className="mr-1"
-                  />
+                  <Image src="/checkmark.svg" alt="Copied" width={16} height={16} className="mr-1" />
                   Copied
                 </>
               ) : hoverCopy ? (
