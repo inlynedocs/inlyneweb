@@ -260,93 +260,169 @@ export default function DocEditorPage() {
       </div>
 
       {shareOpen && (
-        <div
-          className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={() => setShareOpen(false)}
+  <div
+    className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50"
+    onClick={() => setShareOpen(false)}
+  >
+    <div
+      className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6"
+      onClick={e => e.stopPropagation()}
+    >
+      {/* Header */}
+      <h2 className="text-2xl font-semibold mb-1">Share this document</h2>
+      <p className="text-sm text-gray-600 mb-6">
+        {isPublic
+          ? 'Anyone with the link can view this document.'
+          : 'Only authorized users can access this document.'}
+      </p>
+
+      {/* Link row */}
+      <div className="flex items-center space-x-2 mb-6">
+        <input
+          type="text"
+          readOnly
+          value={`${window.location.origin}/${docKey}`}
+          className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <button
+          onClick={copyShareLink}
+          className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm hover:bg-gray-200 transition"
         >
-          <div
-            className="bg-white p-8 rounded-lg max-w-lg w-full mx-4 shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <h2 className="text-xl font-semibold mb-4">Share & Permissions</h2>
+          Copy Link
+        </button>
+      </div>
 
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">Doc Status:</span>
-                  <span className="text-gray-700">{isPublic ? 'Public' : 'Private'}</span>
-                </div>
-                <button
-                  onClick={handleToggle}
-                  disabled={!isAdminOrOwner}
-                  className={`px-3 py-1 border rounded transition ${
-                    isAdminOrOwner ? 'hover:bg-gray-100' : 'opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  {isPublic ? 'Make Private' : 'Make Public'}
-                </button>
-              </div>
+      <hr className="border-gray-200 mb-6" />
 
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Link:</span>
-                <button
-                  onClick={copyShareLink}
-                  className="px-3 py-1 border rounded hover:bg-gray-100 transition"
-                >
-                  Copy URL
-                </button>
-              </div>
-
-              <div>
-                <h3 className="font-medium mb-2">Permissions</h3>
-                <ul className="text-sm space-y-1">
-                  <li><strong>Owner:</strong> {owner?.userName || '—'}</li>
-                  <li><strong>Admins:</strong> {adminsList.length ? adminsList.map(u => u.userName).join(', ') : '—'}</li>
-                  <li><strong>Writers:</strong> {writersList.length ? writersList.map(u => u.userName).join(', ') : '—'}</li>
-                  <li><strong>Readers:</strong> {readersList.length ? readersList.map(u => u.userName).join(', ') : '—'}</li>
-                </ul>
-              </div>
-
-              {isAdminOrOwner && (
-                <div className="mt-4 space-y-2">
-                  <label className="block font-medium">Add Permission</label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      placeholder="User Email"
-                      value={newPermissionUserEmail}
-                      onChange={e => setNewPermissionUserEmail(e.target.value)}
-                      className="flex-1 border p-2 rounded"
-                    />
-                    <select
-                      value={newPermissionRole}
-                      onChange={e => setNewPermissionRole(e.target.value as any)}
-                      className="w-32 border p-2 rounded"
-                    >
-                      <option value="reader">Reader</option>
-                      <option value="writer">Writer</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={handleAddPermission}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Add Permission
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={() => setShareOpen(false)}
-                className="mt-6 px-4 py-2 w-full border rounded hover:bg-gray-100 transition"
-              >
-                Close
-              </button>
+      {/* People with access */}
+      <h3 className="text-sm font-medium text-gray-700 mb-3">People with access</h3>
+      <ul className="space-y-4 mb-6">
+        {owner && (
+          <li key={owner.email} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{owner.userName}</p>
+              <p className="text-xs text-gray-500">{owner.email}</p>
             </div>
+            <select
+              value="owner"
+              disabled
+              className="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50 cursor-not-allowed"
+            >
+              <option>Owner</option>
+            </select>
+          </li>
+        )}
+
+        {adminsList.map(u => (
+          <li key={u.email} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{u.userName}</p>
+              <p className="text-xs text-gray-500">{u.email}</p>
+            </div>
+            <select
+              defaultValue="admin"
+              className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+            >
+              <option value="reader">Can view</option>
+              <option value="writer">Can edit</option>
+              <option value="admin">Is admin</option>
+            </select>
+          </li>
+        ))}
+
+        {writersList.map(u => (
+          <li key={u.email} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{u.userName}</p>
+              <p className="text-xs text-gray-500">{u.email}</p>
+            </div>
+            <select
+              defaultValue="writer"
+              className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+            >
+              <option value="reader">Can view</option>
+              <option value="writer">Can edit</option>
+              <option value="admin">Is admin</option>
+            </select>
+          </li>
+        ))}
+
+        {readersList.map(u => (
+          <li key={u.email} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{u.userName}</p>
+              <p className="text-xs text-gray-500">{u.email}</p>
+            </div>
+            <select
+              defaultValue="reader"
+              className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none"
+            >
+              <option value="reader">Can view</option>
+              <option value="writer">Can edit</option>
+              <option value="admin">Is admin</option>
+            </select>
+          </li>
+        ))}
+      </ul>
+
+      {/* Add Permission */}
+      {isAdminOrOwner && (
+        <div className="space-y-2 mb-6">
+          <label className="block text-sm font-medium">Add people</label>
+          <div className="flex space-x-2">
+            <input
+              type="email"
+              placeholder="User email"
+              value={newPermissionUserEmail}
+              onChange={e => setNewPermissionUserEmail(e.target.value)}
+              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <select
+              value={newPermissionRole}
+              onChange={e => setNewPermissionRole(e.target.value as any)}
+              className="w-32 border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none"
+            >
+              <option value="reader">Reader</option>
+              <option value="writer">Writer</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
+          <button
+            onClick={handleAddPermission}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+          >
+            Add
+          </button>
         </div>
       )}
+
+      {/* Footer */}
+      <div className="flex justify-between items-center">
+        {/* Toggle Public/Private */}
+        <button
+          onClick={handleToggle}
+          disabled={!isAdminOrOwner}
+          className={`px-3 py-1 border rounded text-sm transition ${
+            isAdminOrOwner
+              ? 'hover:bg-gray-100'
+              : 'opacity-50 cursor-not-allowed'
+          }`}
+        >
+          {isPublic ? 'Make Private' : 'Make Public'}
+        </button>
+
+        {/* Close */}
+        <button
+          onClick={() => setShareOpen(false)}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </>
   );
 }

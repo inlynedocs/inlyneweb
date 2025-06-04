@@ -16,8 +16,8 @@ export default function ProfileMenu({ avatarSrc, userName, email }: ProfileMenuP
   return (
     <div className="relative">
       <img
-        src={avatarSrc}
-        alt="Profile"
+        src = {`${avatarSrc}` || "profileicon.svg"}
+        alt = "Profile"
         className="w-10 h-10 rounded-full cursor-pointer hover:ring-4 hover:ring-gray-100 transition"
         onClick={() => setOpen(o => !o)}
       />
