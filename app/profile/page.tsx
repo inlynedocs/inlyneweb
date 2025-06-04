@@ -170,12 +170,14 @@ export default function ProfilePage() {
   return (
     <div>
       <Header />
-      <div className="flex items-center justify-center h-screen">
-        <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
+      <div className="flex items-center justify-center mt-5">
+        <div className="bg-white p-8 rounded-xl w-full max-w-md shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">My Profile</h2>
-            <Link href="/home" className="text-indigo-600 hover:underline">
-              Back to Home
+            <Link href="/home">
+              <button className="bg-gray-100 hover:bg-gray-200 text-black px-5 py-2 rounded-lg">
+                Home
+              </button>
             </Link>
           </div>
 
@@ -196,7 +198,7 @@ export default function ProfilePage() {
                 type="text"
                 value={user.userName}
                 onChange={e => setUser({ ...user, userName: e.target.value })}
-                className="w-full mt-1 border rounded px-3 py-2"
+                className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                 required
               />
             </div>
@@ -207,7 +209,7 @@ export default function ProfilePage() {
                 type="email"
                 value={user.email}
                 onChange={e => setUser({ ...user, email: e.target.value })}
-                className="w-full mt-1 border rounded px-3 py-2"
+                className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                 required
               />
             </div>
@@ -219,7 +221,7 @@ export default function ProfilePage() {
                 type="password"
                 value={currentPassword}
                 onChange={e => setCurrentPassword(e.target.value)}
-                className="w-full mt-1 border rounded px-3 py-2"
+                className="w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="Enter current password to change"
               />
             </div>
@@ -232,7 +234,11 @@ export default function ProfilePage() {
                 onChange={e => setNewPassword(e.target.value)}
                 onFocus={() => setShowCriteria(true)}
                 onBlur={() => setShowCriteria(false)}
-                className="w-full mt-1 border rounded px-3 py-2"
+                className={`w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none ${
+                  showCriteria && (!isLongEnough || !hasSymbolAndNumber || !hasUpperLower)
+                    ? 'focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                    : 'focus:ring-2 focus:ring-black'
+                }`}
                 placeholder="Leave blank to keep current"
               />
               {showCriteria && (
@@ -256,8 +262,10 @@ export default function ProfilePage() {
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className={`w-full mt-1 border rounded px-3 py-2 ${
-                  confirmPassword && !passwordsMatch ? 'border-red-500' : ''
+                className={`w-full mt-1 border rounded-lg px-3 py-2 focus:outline-none ${
+                  confirmPassword && !passwordsMatch
+                    ? 'focus:ring-2 focus:ring-red-500 border-red-500'
+                    : 'focus:ring-2 focus:ring-black'
                 }`}
                 placeholder="Re-enter to confirm"
               />
@@ -271,7 +279,7 @@ export default function ProfilePage() {
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
+              className="w-full bg-[#EC6D26] hover:bg-[#CD5512] font-medium text-white px-4 py-2 rounded-xl"
             >
               Update Profile
             </button>
