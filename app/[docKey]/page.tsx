@@ -30,6 +30,7 @@ export default function DocEditorPage() {
   const [accessLevel, setAccessLevel] = useState<'public' | 'writer'>('public');
   const [isPublic, setIsPublic] = useState(false);
   const [content, setContent] = useState('<p></p>');
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null); // null = not yet checked
 
   // docTitle
   const [docTitle, setDocTitle] = useState<string>('');
@@ -58,6 +59,42 @@ export default function DocEditorPage() {
     if (!docKey || docKey.length !== 8) router.replace('/home');
   }, [docKey, router]);
   if (!docKey || docKey.length !== 8) return null;
+
+  // STEP 1: Verify token on mount
+  useEffect(() => {
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/user?requestType=verifyToken`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          }
+        });
+
+        if (!res.ok) {
+          // Treat non-200 as invalid
+          router.push('/login');
+          return;
+        }
+
+        const data: { tokenStatus: 'valid' | 'invalid' } = await res.json();
+        if (data.tokenStatus === 'valid') {
+          setTokenValid(true);
+        } else {
+          router.push('/login');
+        }
+      } catch (err) {
+        console.error('Token verification failed:', err);
+        router.push('/login');
+      }
+    })();
+  }, [token, router]);
 
   // Fetch current user info
   useEffect(() => {
